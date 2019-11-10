@@ -1,77 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
-<search>
-  <entry>
-    <title>test</title>
-    <url>/2019/11/10/test/</url>
-    <content><![CDATA[<p>[toc]</p>
-<h2 id="泛型"><a href="#泛型" class="headerlink" title="泛型"></a>泛型</h2><h3 id="1-定义"><a href="#1-定义" class="headerlink" title="1. 定义"></a>1. 定义</h3><p><img alt data-src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191110012222.png" class="lazyload"></p>
-<blockquote>
-<p>泛型的本质是参数化类型,也就是说所操作的<strong>数据类型被指定为一个参数</strong></p>
-</blockquote>
-<p>泛型类型的确定是在类对象创建的时候确定的</p>
-<h3 id="2-方法中的使用"><a href="#2-方法中的使用" class="headerlink" title="2. 方法中的使用"></a>2. 方法中的使用</h3><p>在方法中的使用格式:</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">权限修饰符 &lt;无意义的泛型占位符&gt; 返回值类型[可以使用自定义类型] 方法名(参数列表[可使用自定义泛型类型]) &#123;</span><br><span class="line">    <span class="comment">//同样可以使用自定义泛型</span></span><br><span class="line">    方法体</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line">例如:</span><br><span class="line"> </span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> &lt;E&gt; <span class="function"><span class="keyword">void</span> <span class="title">test</span><span class="params">(E a)</span> </span>&#123;</span><br><span class="line">    System.out.println(a);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>占位符通常使用 E T K(key) V(value)</p>
-</blockquote>
-<p>java是一个完全面对对象的语言, 在java中 , 8大数据类型也有与之对应的类对象,这个类对象称之为包装类</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">Integer -&gt; <span class="keyword">int</span></span><br><span class="line">Byte -&gt; <span class="keyword">byte</span></span><br><span class="line">Long -&gt; <span class="keyword">long</span></span><br><span class="line">Short -&gt; <span class="keyword">short</span></span><br><span class="line"> </span><br><span class="line">Double -&gt; <span class="keyword">double</span></span><br><span class="line">Float -&gt; <span class="keyword">float</span></span><br><span class="line"> </span><br><span class="line">Boolean -&gt; <span class="keyword">boolean</span></span><br><span class="line"> </span><br><span class="line">Character -&gt; <span class="keyword">char</span></span><br></pre></td></tr></table></figure>
-
-<h3 id="创建类对象"><a href="#创建类对象" class="headerlink" title="创建类对象"></a>创建类对象</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">//标准格式</span></span><br><span class="line">ArrayList&lt;String&gt; list = <span class="keyword">new</span> ArrayList&lt;String&gt;();</span><br><span class="line"> </span><br><span class="line">或: <span class="comment">//为满足不同的版本和不同的编写工具</span></span><br><span class="line">ArrayList list = <span class="keyword">new</span> ArrayList&lt;String&gt;();</span><br><span class="line">ArrayList&lt;String&gt; list = <span class="keyword">new</span> ArrayList();</span><br></pre></td></tr></table></figure>
-
-<h3 id="类内使用泛型"><a href="#类内使用泛型" class="headerlink" title="类内使用泛型"></a>类内使用泛型</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> 类名&lt;自定义泛型占位符&gt; </span>&#123;</span><br><span class="line">    <span class="comment">//类内的普通成员变量和普通成员方法都可以使用和类名声明一致的泛型占位符</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>可以把尖括号中的 <strong>自定义泛型占位符</strong> 当作是一个 <strong>变量类型</strong> 来使用</p>
-<p><strong>注意事项；</strong></p>
-<ol>
-<li><p>一个类声明了自定义的泛型，如果在创建当前类对象时，约束了泛型的具体类型，那么在类内的所有<br>非静态成员方法和非静态成员方法使用到泛型的位置，数据类型都会具体类型。如果在创建当前类对象时<br>没有约束数据类型，所有用到泛型的位置都是Object类型</p>
-</li>
-<li><p>数组中如果数据类型为基本数据类型，那么当前数组是没有直接转换成对应包装类数组类型的能力。<br>因为，自动装箱和自动拆箱是针对单体数据的</p>
-</li>
-<li><p>一个类声明的自定义泛型，不能在类内的静态方法中使用。【没有对象】</p>
-</li>
-<li><p>类内的静态方法可以自己声明泛型。</p>
-</li>
-</ol>
-<p>5.使用不同的占位符保证阅读性</p>
-<h3 id="接口中使用泛型"><a href="#接口中使用泛型" class="headerlink" title="接口中使用泛型"></a>接口中使用泛型</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">interface</span> 接口名&lt;自定义泛型的占位符&gt; </span>&#123;</span><br><span class="line">    <span class="comment">//成员变量 缺省属性 public static final</span></span><br><span class="line">    <span class="comment">//成员方法 缺省属性 abstract</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p><strong>注意:</strong></p>
-<p>接口中的成员变量不能使用泛型.两方面的原因:</p>
-<pre><code>final : 接口中的成员变量是使用final修饰的，定义时必须初始化，这里泛型的具体类型还没有被约束的条件下，无法进行对应数据类型的初始化
-
-static : 接口中的成员变量是使用static修饰的，而static修饰的成员变量是在类文件加载时已经存在于内存的【数据区】。而接口的泛型具体数据类型是随着类对象的创建为确定，时间不符。</code></pre><h4 id="遵从自定义泛型接口的两种方式"><a href="#遵从自定义泛型接口的两种方式" class="headerlink" title="遵从自定义泛型接口的两种方式:"></a>遵从自定义泛型接口的两种方式:</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line">第一种:</span><br><span class="line"><span class="comment">//没有确定泛型的具体类型,由调用者决定</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Test1</span>&lt;<span class="title">G</span>&gt; <span class="keyword">implements</span> <span class="title">A</span>&lt;<span class="title">G</span>&gt; </span>&#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">testA</span><span class="params">(G g)</span></span>&#123;</span><br><span class="line"> </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line">第二种:</span><br><span class="line"><span class="comment">//泛型的具体类型已经确定,比较常用</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Test2</span> <span class="title">implement</span> <span class="title">A</span>&lt;<span class="title">String</span>&gt; </span>&#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">testA</span><span class="params">(string g)</span> </span>&#123;</span><br><span class="line"> </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h3 id="泛型的上下限"><a href="#泛型的上下限" class="headerlink" title="泛型的上下限"></a>泛型的上下限</h3><p><code>&lt;? extends T&gt;</code><strong>上限</strong><br>表示该通配符所代表的类型是T类型的子类</p>
-<p><code>&lt;? super T&gt;</code><strong>下限</strong><br>表示该通配符所代表的类型是T类型的父类</p>
-<p><strong>类型通配符</strong>一般是使用<code>?</code>代替具体的类型参数. 例如:</p>
-<p><code>List&lt;?&gt;</code> 在逻辑上是<code>List&lt;String&gt;, List&lt;Integer&gt;</code> 等所有<code>List&lt;具体类型实参&gt;</code>的父类</p>
-<p>对集合中的数据的类型进行限制 // ? 好像是 ??</p>
-<h3 id="Map"><a href="#Map" class="headerlink" title="Map"></a>Map</h3><p><strong>键值对</strong></p>
-<p>键 : 唯一不可重复<br>值 : 可以重复</p>
-<p>一个键对一个值</p>
-<p>声明格式:</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">Map&lt;K, V&gt; map = <span class="keyword">new</span> Hashmap&lt;K, V&gt;;</span><br><span class="line">其中的K 和 V 表示数据类型</span><br></pre></td></tr></table></figure>
-<p><a href="https://blog.csdn.net/s10461/article/details/53941091" target="_blank" rel="noopener">java 泛型详解-绝对是对泛型方法讲解最详细的，没有之一</a></p>
-]]></content>
-      <tags>
-        <tag>tags</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Hello World</title>
-    <url>/2019/11/10/hello-world/</url>
-    <content><![CDATA[<p>Welcome to <a href="https://hexo.io/" target="_blank" rel="noopener">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/" target="_blank" rel="noopener">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html" target="_blank" rel="noopener">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues" target="_blank" rel="noopener">GitHub</a>.</p>
-<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo new <span class="string">"My New Post"</span></span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/writing.html" target="_blank" rel="noopener">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/server.html" target="_blank" rel="noopener">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/generating.html" target="_blank" rel="noopener">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/one-command-deployment.html" target="_blank" rel="noopener">Deployment</a></p>
-]]></content>
-  </entry>
+<search> 
+  
+  
+    
+    <entry>
+      <title>github+hext搭建个人线上笔记</title>
+      <link href="/2019/11/10/github+hext%E6%90%AD%E5%BB%BA%E4%B8%AA%E4%BA%BA%E7%BA%BF%E4%B8%8A%E7%AC%94%E8%AE%B0/"/>
+      <url>/2019/11/10/github+hext%E6%90%AD%E5%BB%BA%E4%B8%AA%E4%BA%BA%E7%BA%BF%E4%B8%8A%E7%AC%94%E8%AE%B0/</url>
+      
+        <content type="html"><![CDATA[<p>[toc]</p><h1 id="1-github"><a href="#1-github" class="headerlink" title="1. github"></a>1. github</h1><h2 id="1-1-创建仓库"><a href="#1-1-创建仓库" class="headerlink" title="1.1 创建仓库"></a>1.1 创建仓库</h2><p><strong>注意</strong> 这个名字最好的<code>用户名.github.io</code>, 因为之后使用hexo生成的静态文件中会使用 <code>/css/index.css</code>作为css的相对路径, 如果使用其他名字, github生成的网站地址会多出两级目录,导致找不到css和js文件</p><p><img alt data-src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191110222817.png" class="lazyload"></p><h2 id="1-2-设置仓库"><a href="#1-2-设置仓库" class="headerlink" title="1.2 设置仓库"></a>1.2 设置仓库</h2><p>在仓库的设置中设置GitHub Pages 为 master</p><p><img alt data-src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191110223555.png" class="lazyload"></p><h1 id="2-hexo"><a href="#2-hexo" class="headerlink" title="2. hexo"></a>2. hexo</h1><h2 id="2-1-安装"><a href="#2-1-安装" class="headerlink" title="2.1 安装"></a>2.1 安装</h2><blockquote><p>依照hexo的官方首页命令安装</p></blockquote><h2 id="2-2-布署"><a href="#2-2-布署" class="headerlink" title="2.2 布署"></a>2.2 布署</h2><h3 id="2-2-1-生成静态文件"><a href="#2-2-1-生成静态文件" class="headerlink" title="2.2.1 生成静态文件"></a>2.2.1 生成静态文件</h3><p>执行 : <code>hexo generate</code> 或 <code>hexo g</code></p><h3 id="2-2-2-上传到github"><a href="#2-2-2-上传到github" class="headerlink" title="2.2.2 上传到github"></a>2.2.2 上传到github</h3><ul><li><p>修改根目录下的_config.yml文件, repository改为刚刚创建的Github仓库SSh链接</p>  <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">deploy:</span><br><span class="line">type: git</span><br><span class="line">repository: git@github.com:KR673/note.github.io.git</span><br><span class="line">branch: master</span><br></pre></td></tr></table></figure><p>  <strong>注意</strong>这个repository使用<strong>SSH链接</strong>而不是https</p></li><li><p>执行 : <code>hexo deploy</code> 或 <code>hexo d</code></p></li></ul><h2 id="2-3-常用hexo命令"><a href="#2-3-常用hexo命令" class="headerlink" title="2.3 常用hexo命令"></a>2.3 常用hexo命令</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">hexo new &quot;postName&quot; #新建文章</span><br><span class="line">hexo new page &quot;pageName&quot; #新建页面</span><br><span class="line">hexo generate #生成静态页面至public目录</span><br><span class="line">hexo server #开启预览访问端口（默认端口4000，&apos;ctrl + c&apos;关闭server）</span><br><span class="line">hexo deploy #部署到GitHub</span><br><span class="line">hexo help  # 查看帮助</span><br><span class="line">hexo version  #查看Hexo的版本</span><br></pre></td></tr></table></figure><p>缩写：</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">hexo n == hexo new</span><br><span class="line">hexo g == hexo generate</span><br><span class="line">hexo s == hexo server</span><br><span class="line">hexo d == hexo deploy</span><br></pre></td></tr></table></figure><p>组合命令：</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">hexo s -g #生成并本地预览</span><br><span class="line">hexo d -g #生成并上传</span><br></pre></td></tr></table></figure>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> hexo </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>阿里oss+PicGo配制图床</title>
+      <link href="/2019/11/10/%E9%98%BF%E9%87%8Coss+PicGo%E9%85%8D%E5%88%B6%E5%9B%BE%E5%BA%8A/"/>
+      <url>/2019/11/10/%E9%98%BF%E9%87%8Coss+PicGo%E9%85%8D%E5%88%B6%E5%9B%BE%E5%BA%8A/</url>
+      
+        <content type="html"><![CDATA[<p>[toc]</p><h2 id="1-购买阿里oss"><a href="#1-购买阿里oss" class="headerlink" title="1. 购买阿里oss"></a>1. 购买阿里oss</h2><p>按流量 / 包月, 按需购买即可, <strong>此处购买的只是空间, 流量另外付费</strong></p><h3 id="1-1-获取AccessKeys"><a href="#1-1-获取AccessKeys" class="headerlink" title="1.1 获取AccessKeys"></a>1.1 获取AccessKeys</h3><p><img alt="0" data-src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191110012222.png" class="lazyload"></p><hr><blockquote><p>以下为RAM访问控制, 设置这个子用户更加的安全<br><img alt="1" data-src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191110005443.png" class="lazyload"><br><img alt="2" data-src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191110010153.png" class="lazyload"></p></blockquote><h2 id="2-下载并配制PicGo"><a href="#2-下载并配制PicGo" class="headerlink" title="2 下载并配制PicGo"></a>2 下载并配制PicGo</h2><h3 id="2-1-下载"><a href="#2-1-下载" class="headerlink" title="2.1 下载"></a>2.1 下载</h3><p><a href="https://github.com/Molunerfinn/PicGo/releases" target="_blank" rel="noopener">下载地址</a></p><h3 id="2-2-配制"><a href="#2-2-配制" class="headerlink" title="2.2 配制"></a>2.2 配制</h3><p><img alt data-src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191110010937.png" class="lazyload"></p><ul><li>accesskey和accesskeySecret可以从阿里云控制台获取(刚刚设置的)。</li><li>存储空间名是bucket的名字。</li><li>存储区域到阿里云OSS控制台去找，例如下图中存储区域就是 <code>oss-cn-beijing</code><br><img alt data-src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191110010639.png" class="lazyload"></li><li>存储路径是存储图片的位置，要求以/结尾,bucket中没有指定文件夹的话可以不填。</li><li>自定义域名可以不填写。</li></ul>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> 图床 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+  
+  
 </search>

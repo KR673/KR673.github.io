@@ -1,45 +1,69 @@
 <?xml version="1.0" encoding="utf-8"?>
-<search> 
-  
-  
-    
-    <entry>
-      <title>github+hext搭建个人线上笔记</title>
-      <link href="/2019/11/10/github+hext%E6%90%AD%E5%BB%BA%E4%B8%AA%E4%BA%BA%E7%BA%BF%E4%B8%8A%E7%AC%94%E8%AE%B0/"/>
-      <url>/2019/11/10/github+hext%E6%90%AD%E5%BB%BA%E4%B8%AA%E4%BA%BA%E7%BA%BF%E4%B8%8A%E7%AC%94%E8%AE%B0/</url>
-      
-        <content type="html"><![CDATA[<p>[toc]</p><h1 id="1-github"><a href="#1-github" class="headerlink" title="1. github"></a>1. github</h1><h2 id="1-1-创建仓库"><a href="#1-1-创建仓库" class="headerlink" title="1.1 创建仓库"></a>1.1 创建仓库</h2><p><strong>注意</strong> 这个名字最好的<code>用户名.github.io</code>, 因为之后使用hexo生成的静态文件中会使用 <code>/css/index.css</code>作为css的相对路径, 如果使用其他名字, github生成的网站地址会多出两级目录,导致找不到css和js文件</p><p><img alt data-src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191110222817.png" class="lazyload"></p><h2 id="1-2-设置仓库"><a href="#1-2-设置仓库" class="headerlink" title="1.2 设置仓库"></a>1.2 设置仓库</h2><p>在仓库的设置中设置GitHub Pages 为 master</p><p><img alt data-src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191110223555.png" class="lazyload"></p><h1 id="2-hexo"><a href="#2-hexo" class="headerlink" title="2. hexo"></a>2. hexo</h1><h2 id="2-1-安装"><a href="#2-1-安装" class="headerlink" title="2.1 安装"></a>2.1 安装</h2><blockquote><p>依照hexo的官方首页命令安装</p></blockquote><h2 id="2-2-布署"><a href="#2-2-布署" class="headerlink" title="2.2 布署"></a>2.2 布署</h2><h3 id="2-2-1-生成静态文件"><a href="#2-2-1-生成静态文件" class="headerlink" title="2.2.1 生成静态文件"></a>2.2.1 生成静态文件</h3><p>执行 : <code>hexo generate</code> 或 <code>hexo g</code></p><h3 id="2-2-2-上传到github"><a href="#2-2-2-上传到github" class="headerlink" title="2.2.2 上传到github"></a>2.2.2 上传到github</h3><ul><li><p>修改根目录下的_config.yml文件, repository改为刚刚创建的Github仓库SSh链接</p>  <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">deploy:</span><br><span class="line">type: git</span><br><span class="line">repository: git@github.com:KR673/note.github.io.git</span><br><span class="line">branch: master</span><br></pre></td></tr></table></figure><p>  <strong>注意</strong>这个repository使用<strong>SSH链接</strong>而不是https</p></li><li><p>执行 : <code>hexo deploy</code> 或 <code>hexo d</code></p></li></ul><h2 id="2-3-常用hexo命令"><a href="#2-3-常用hexo命令" class="headerlink" title="2.3 常用hexo命令"></a>2.3 常用hexo命令</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">hexo new &quot;postName&quot; #新建文章</span><br><span class="line">hexo new page &quot;pageName&quot; #新建页面</span><br><span class="line">hexo generate #生成静态页面至public目录</span><br><span class="line">hexo server #开启预览访问端口（默认端口4000，&apos;ctrl + c&apos;关闭server）</span><br><span class="line">hexo deploy #部署到GitHub</span><br><span class="line">hexo help  # 查看帮助</span><br><span class="line">hexo version  #查看Hexo的版本</span><br></pre></td></tr></table></figure><p>缩写：</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">hexo n == hexo new</span><br><span class="line">hexo g == hexo generate</span><br><span class="line">hexo s == hexo server</span><br><span class="line">hexo d == hexo deploy</span><br></pre></td></tr></table></figure><p>组合命令：</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">hexo s -g #生成并本地预览</span><br><span class="line">hexo d -g #生成并上传</span><br></pre></td></tr></table></figure>]]></content>
-      
-      
-      
-        <tags>
-            
-            <tag> hexo </tag>
-            
-        </tags>
-      
-    </entry>
-    
-    
-    
-    <entry>
-      <title>阿里oss+PicGo配制图床</title>
-      <link href="/2019/11/10/%E9%98%BF%E9%87%8Coss+PicGo%E9%85%8D%E5%88%B6%E5%9B%BE%E5%BA%8A/"/>
-      <url>/2019/11/10/%E9%98%BF%E9%87%8Coss+PicGo%E9%85%8D%E5%88%B6%E5%9B%BE%E5%BA%8A/</url>
-      
-        <content type="html"><![CDATA[<p>[toc]</p><h2 id="1-购买阿里oss"><a href="#1-购买阿里oss" class="headerlink" title="1. 购买阿里oss"></a>1. 购买阿里oss</h2><p>按流量 / 包月, 按需购买即可, <strong>此处购买的只是空间, 流量另外付费</strong></p><h3 id="1-1-获取AccessKeys"><a href="#1-1-获取AccessKeys" class="headerlink" title="1.1 获取AccessKeys"></a>1.1 获取AccessKeys</h3><p><img alt="0" data-src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191110012222.png" class="lazyload"></p><hr><blockquote><p>以下为RAM访问控制, 设置这个子用户更加的安全<br><img alt="1" data-src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191110005443.png" class="lazyload"><br><img alt="2" data-src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191110010153.png" class="lazyload"></p></blockquote><h2 id="2-下载并配制PicGo"><a href="#2-下载并配制PicGo" class="headerlink" title="2 下载并配制PicGo"></a>2 下载并配制PicGo</h2><h3 id="2-1-下载"><a href="#2-1-下载" class="headerlink" title="2.1 下载"></a>2.1 下载</h3><p><a href="https://github.com/Molunerfinn/PicGo/releases" target="_blank" rel="noopener">下载地址</a></p><h3 id="2-2-配制"><a href="#2-2-配制" class="headerlink" title="2.2 配制"></a>2.2 配制</h3><p><img alt data-src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191110010937.png" class="lazyload"></p><ul><li>accesskey和accesskeySecret可以从阿里云控制台获取(刚刚设置的)。</li><li>存储空间名是bucket的名字。</li><li>存储区域到阿里云OSS控制台去找，例如下图中存储区域就是 <code>oss-cn-beijing</code><br><img alt data-src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191110010639.png" class="lazyload"></li><li>存储路径是存储图片的位置，要求以/结尾,bucket中没有指定文件夹的话可以不填。</li><li>自定义域名可以不填写。</li></ul>]]></content>
-      
-      
-      
-        <tags>
-            
-            <tag> 图床 </tag>
-            
-        </tags>
-      
-    </entry>
-    
-    
-  
-  
+<search>
+  <entry>
+    <title>阿里oss+PicGo配制图床</title>
+    <url>/2019/11/12/%E9%98%BF%E9%87%8Coss+PicGo%E9%85%8D%E5%88%B6%E5%9B%BE%E5%BA%8A/</url>
+    <content><![CDATA[<p>[toc]</p>
+<h1 id="阿里oss-PicGo配制图床"><a href="#阿里oss-PicGo配制图床" class="headerlink" title="阿里oss+PicGo配制图床"></a>阿里oss+PicGo配制图床</h1><h2 id="1-购买阿里oss"><a href="#1-购买阿里oss" class="headerlink" title="1. 购买阿里oss"></a>1. 购买阿里oss</h2><p>按流量 / 包月, 按需购买即可, <strong>此处购买的只是空间, 流量另外付费</strong></p>
+<h3 id="1-1-获取AccessKeys"><a href="#1-1-获取AccessKeys" class="headerlink" title="1.1 获取AccessKeys"></a>1.1 获取AccessKeys</h3><p><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191110012222.png" alt="0"></p>
+<hr>
+<blockquote>
+<p>以下为RAM访问控制, 设置这个子用户更加的安全<br><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191110005443.png" alt="1"><br><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191110010153.png" alt="2"></p>
+</blockquote>
+<h2 id="2-下载并配制PicGo"><a href="#2-下载并配制PicGo" class="headerlink" title="2 下载并配制PicGo"></a>2 下载并配制PicGo</h2><h3 id="2-1-下载"><a href="#2-1-下载" class="headerlink" title="2.1 下载"></a>2.1 下载</h3><p><a href="https://github.com/Molunerfinn/PicGo/releases" target="_blank" rel="noopener">下载地址</a></p>
+<h3 id="2-2-配制"><a href="#2-2-配制" class="headerlink" title="2.2 配制"></a>2.2 配制</h3><p><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191110010937.png" alt></p>
+<ul>
+<li>accesskey和accesskeySecret可以从阿里云控制台获取(刚刚设置的)。</li>
+<li>存储空间名是bucket的名字。</li>
+<li>存储区域到阿里云OSS控制台去找，例如下图中存储区域就是 <code>oss-cn-beijing</code><br><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191110010639.png" alt></li>
+<li>存储路径是存储图片的位置，要求以/结尾,bucket中没有指定文件夹的话可以不填。</li>
+<li>自定义域名可以不填写。</li>
+</ul>
+]]></content>
+      <tags>
+        <tag>图床</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Github+hext搭建个人线上笔记</title>
+    <url>/2019/11/12/github+hext%E6%90%AD%E5%BB%BA%E4%B8%AA%E4%BA%BA%E7%BA%BF%E4%B8%8A%E7%AC%94%E8%AE%B0/</url>
+    <content><![CDATA[<p>[toc]</p>
+<h1 id="Github-hext搭建个人线上笔记"><a href="#Github-hext搭建个人线上笔记" class="headerlink" title="Github+hext搭建个人线上笔记"></a>Github+hext搭建个人线上笔记</h1><h2 id="1-github"><a href="#1-github" class="headerlink" title="1. github"></a>1. github</h2><h3 id="1-1-创建仓库"><a href="#1-1-创建仓库" class="headerlink" title="1.1 创建仓库"></a>1.1 创建仓库</h3><p><strong>注意</strong> 这个名字最好的<code>用户名.github.io</code>, 因为之后使用hexo生成的静态文件中会使用 <code>/css/index.css</code>作为css的相对路径, 如果使用其他名字, github生成的网站地址会多出两级目录,导致找不到css和js文件</p>
+<p><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191110222817.png" alt></p>
+<h3 id="1-2-设置仓库"><a href="#1-2-设置仓库" class="headerlink" title="1.2 设置仓库"></a>1.2 设置仓库</h3><p>在仓库的设置中设置GitHub Pages 为 master</p>
+<p><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191110223555.png" alt></p>
+<h2 id="2-hexo"><a href="#2-hexo" class="headerlink" title="2. hexo"></a>2. hexo</h2><h3 id="2-1-安装"><a href="#2-1-安装" class="headerlink" title="2.1 安装"></a>2.1 安装</h3><blockquote>
+<p>依照hexo的官方首页命令安装</p>
+</blockquote>
+<h3 id="2-2-布署"><a href="#2-2-布署" class="headerlink" title="2.2 布署"></a>2.2 布署</h3><h4 id="2-2-1-生成静态文件"><a href="#2-2-1-生成静态文件" class="headerlink" title="2.2.1 生成静态文件"></a>2.2.1 生成静态文件</h4><p>执行 : <code>hexo generate</code> 或 <code>hexo g</code></p>
+<h4 id="2-2-2-上传到github"><a href="#2-2-2-上传到github" class="headerlink" title="2.2.2 上传到github"></a>2.2.2 上传到github</h4><ul>
+<li><p>修改根目录下的_config.yml文件, repository改为刚刚创建的Github仓库SSh链接</p>
+  <figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">deploy:</span><br><span class="line">type: git</span><br><span class="line">repository: git@github.com:KR673/note.github.io.git</span><br><span class="line">branch: master</span><br></pre></td></tr></table></figure>
+<p>  <strong>注意</strong>这个repository使用<strong>SSH链接</strong>而不是https</p>
+</li>
+<li><p>执行 : <code>hexo deploy</code> 或 <code>hexo d</code></p>
+</li>
+</ul>
+<h3 id="2-3-常用hexo命令"><a href="#2-3-常用hexo命令" class="headerlink" title="2.3 常用hexo命令"></a>2.3 常用hexo命令</h3><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">hexo new &quot;postName&quot; #新建文章</span><br><span class="line">hexo new page &quot;pageName&quot; #新建页面</span><br><span class="line">hexo generate #生成静态页面至public目录</span><br><span class="line">hexo server #开启预览访问端口（默认端口4000，&apos;ctrl + c&apos;关闭server）</span><br><span class="line">hexo deploy #部署到GitHub</span><br><span class="line">hexo help  # 查看帮助</span><br><span class="line">hexo version  #查看Hexo的版本</span><br></pre></td></tr></table></figure>
+
+<p>缩写：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">hexo n == hexo new</span><br><span class="line">hexo g == hexo generate</span><br><span class="line">hexo s == hexo server</span><br><span class="line">hexo d == hexo deploy</span><br></pre></td></tr></table></figure>
+
+<p>组合命令：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">hexo s -g #生成并本地预览</span><br><span class="line">hexo d -g #生成并上传</span><br></pre></td></tr></table></figure>]]></content>
+      <tags>
+        <tag>hexo</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>hexo使用中与到的一些问题及使用技巧</title>
+    <url>/2019/11/11/hexo%E4%BD%BF%E7%94%A8%E4%B8%AD%E4%B8%8E%E5%88%B0%E7%9A%84%E4%B8%80%E4%BA%9B%E9%97%AE%E9%A2%98%E5%8F%8A%E4%BD%BF%E7%94%A8%E6%8A%80%E5%B7%A7/</url>
+    <content><![CDATA[<h1 id="hexo使用中与到的一些问题及使用技巧"><a href="#hexo使用中与到的一些问题及使用技巧" class="headerlink" title="hexo使用中与到的一些问题及使用技巧"></a>hexo使用中与到的一些问题及使用技巧</h1><h2 id="1-默认会用相对路作为标题"><a href="#1-默认会用相对路作为标题" class="headerlink" title="1. 默认会用相对路作为标题"></a>1. 默认会用相对路作为标题</h2><p>如果_posts中有多级目录的话, <strong>默认会用相对路作为标题</strong>, 如<code>java/java基础</code>.<br>这就需要在文章头的 front-matter 中, 要加上<code>title</code>参数, 此时就会使用title中的名字作为标题</p>
+<h2 id="2-创建文件时生成front-matter信息"><a href="#2-创建文件时生成front-matter信息" class="headerlink" title="2. 创建文件时生成front-matter信息"></a>2. 创建文件时生成front-matter信息</h2><p>使用<code>hexo new [文件名]</code>的方式会默认使用scaffolds中的post模板生成文件</p>
+<h2 id="3-摘要显示图片"><a href="#3-摘要显示图片" class="headerlink" title="3. 摘要显示图片"></a>3. 摘要显示图片</h2><p>默认的方式是front-matter中添加<code>phothos</code>, 但是试了一下会报错, 目前不知道原因<br>现在通过修改<code>post.js</code>文件(<em>摘要的显示需要修改这个文件, 现在摘要的显示也是修改后的</em>), 添加<code>conver</code>来显示图片</p>
+]]></content>
+      <tags>
+        <tag>hexo</tag>
+      </tags>
+  </entry>
 </search>

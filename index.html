@@ -248,11 +248,9 @@
       
           [toc]
 
-可以使用 自定义注解 + 反射来实现
+可以使用 自定义注解 + 反射来实现, 这样可以为不同的字段添加不同的注解以分类判断
 
-1. 自定义注解1234@Target(ElementType.FIELD)@Retention(RetentionPolicy.RUNTIME)public @interface TypeOne &#123;&#125;
-
-2. 测试对象123...
+1. 自定义注解1234567891011/** * 字段、枚举的常量 */@Target(ElementType.FIELD)/** * 注解会在class字节码文件中存在，在运行时可以通过反射获...
           <!--noindex-->
           <!--/noindex-->
         

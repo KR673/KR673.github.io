@@ -4,11 +4,89 @@
   
     
     <entry>
-      <title>Java8-常用函数式接口</title>
-      <link href="/2019/12/20/Java8-%E5%B8%B8%E7%94%A8%E5%87%BD%E6%95%B0%E5%BC%8F%E6%8E%A5%E5%8F%A3/"/>
-      <url>/2019/12/20/Java8-%E5%B8%B8%E7%94%A8%E5%87%BD%E6%95%B0%E5%BC%8F%E6%8E%A5%E5%8F%A3/</url>
+      <title>Mysql-事务实现原理</title>
+      <link href="/2020/01/08/Mysql-%E4%BA%8B%E5%8A%A1%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/"/>
+      <url>/2020/01/08/Mysql-%E4%BA%8B%E5%8A%A1%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/</url>
       
-        <content type="html"><![CDATA[<p>[toc]</p><p><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191220011454.png" alt><br><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191220011514.png" alt></p><h2 id="1-Predicate-谓语"><a href="#1-Predicate-谓语" class="headerlink" title="1. Predicate(谓语)"></a>1. Predicate(谓语)</h2><p><code>java.util.function.Predicate&lt;T&gt;</code>接口定义了一个名叫test的抽象方法，它<strong>接受泛型T对象</strong>，并<strong>返回一个boolean</strong>, 适合于需要根据多种不同的判断条件获取不同值的情况</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">public static &lt;T&gt; void judgeString(String param,Predicate&lt;T&gt; judge)&#123;</span><br><span class="line">    if(judge.test(param))&#123;</span><br><span class="line">        System.out.print(param)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">// &quot;aa&quot;</span><br><span class="line">judgeString(&quot;aa&quot;, t -&gt; Ojbects.equals(t , &quot;aa&quot;))</span><br></pre></td></tr></table></figure><h2 id="2-Consumer"><a href="#2-Consumer" class="headerlink" title="2. Consumer"></a>2. Consumer</h2><p><code>java.util.function.Consumer&lt;T&gt;</code>定义了一个名叫accept的抽象方法，它接受泛型T的对象，没有返回（void),如果需要访问类型T的对象，并对其执行某些操作，就可以使用这个接口</p><h2 id="3-Function"><a href="#3-Function" class="headerlink" title="3. Function"></a>3. Function</h2><p><code>java.util.function.Function&lt;T, R&gt;</code>接口定义了一个叫作apply的方法，它接受一个 泛型T的对象，并返回一个泛型R的对象. 。如果你需要定义一个Lambda，将输入对象的信息映射到输出，就可以使用这个接口</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">Class Uses&#123;</span><br><span class="line">    private Strng name;</span><br><span class="line">    private Integer age;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">public static &lt;T, R&gt; List&lt;R&gt; getList(List&lt;T&gt; param, Function&lt;T, R&gt; f)&#123;</span><br><span class="line">        return param.stream()</span><br><span class="line">                .map(f)</span><br><span class="line">                .collect(Collectors.toList());</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">// 获取list中Uses对应的名字属性, 并转为一个新的列表</span><br><span class="line">List&lt;Users&gt; param;</span><br><span class="line">getList(param, Param::getName())</span><br></pre></td></tr></table></figure>]]></content>
+        <content type="html"><![CDATA[<p>[toc]</p><h2 id="1-事务的档四种隔离级别"><a href="#1-事务的档四种隔离级别" class="headerlink" title="1. 事务的档四种隔离级别"></a>1. 事务的档四种隔离级别</h2><ul><li><strong>读未提交</strong> : 一个事务可以读到另一个事务没有提交的数据</li><li><strong>读已提交</strong> : 一个事务可以读到另一个事务已提交的数据</li><li><strong>可重复读</strong> : 只读在该事务开始之前的数据</li><li><strong>串行化</strong> : 所有事务都是串行的</li></ul><h2 id="2-mysql中数据查询与更新过程"><a href="#2-mysql中数据查询与更新过程" class="headerlink" title="2. mysql中数据查询与更新过程"></a>2. mysql中数据查询与更新过程</h2><h3 id="2-1-查询过程"><a href="#2-1-查询过程" class="headerlink" title="2.1 查询过程"></a>2.1 查询过程</h3><p><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20200109002655.png" alt><br><strong>mysql8中已经没有查询缓存, 直接查询内存中缓存的数据</strong></p><h3 id="2-2-更新过程"><a href="#2-2-更新过程" class="headerlink" title="2.2 更新过程"></a>2.2 更新过程</h3><p><strong>首先查询对应的过程也会执行一边</strong><br><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20200109002601.png" alt></p><h2 id="3-事务实现原理"><a href="#3-事务实现原理" class="headerlink" title="3. 事务实现原理"></a>3. 事务实现原理</h2><h3 id="3-1-读未提交"><a href="#3-1-读未提交" class="headerlink" title="3.1 读未提交"></a>3.1 读未提交</h3><p>“读未提交”隔离级别下直接返回记录上的最新值，这里的最新值指的是<strong>缓冲池(内存)</strong>中的值, 因为更新的时候是<strong>直接更新的内存</strong>,不管有没有提交, 只是把提交状态记录在redo-log里</p><h3 id="3-2-读已提交及可重复读"><a href="#3-2-读已提交及可重复读" class="headerlink" title="3.2 读已提交及可重复读"></a>3.2 读已提交及可重复读</h3><p>这两个在实现上类似, 数据库里面会创建一个<strong>视图</strong>(快照)，访问的时候<strong>以视图的逻辑结果为准</strong>。</p><blockquote><p>这里的视图<strong>不是虚拟表</strong>, 而是InnoDB 在实现 MVCC 时用到的<strong>一致性读视图</strong>，即 <em>consistent read view</em>, 其<strong>没有物理结构</strong>,是在需要的时候根据当前版本和 undo log <strong>计算出来的</strong>。</p></blockquote><p>InnoDB 里面每个事务有一个<strong>唯一</strong>的事务ID，叫作 transaction id. <strong>每行数据也都是有多个版本的</strong>。每次事务更新数据的时候，都会生成一个新的数据版本，并且把 transaction id赋值给这个数据版本的事务ID，记为 row trx_id。之前每个版本的值都可以根据最后一个值加上回滚日志计算获得, 也就是说之前版本的值并不是真实存在的</p><h3 id="3-2-1-读提交"><a href="#3-2-1-读提交" class="headerlink" title="3.2.1 读提交"></a>3.2.1 读提交</h3><blockquote><p>视图是在每个 SQL 语句开始执行的时候创建的</p></blockquote><h3 id="3-2-2-可重复读"><a href="#3-2-2-可重复读" class="headerlink" title="3.2.2 可重复读"></a>3.2.2 可重复读</h3><blockquote><p>视图是在事务启动时创建的，整个事务存在期间都用这个视图。</p></blockquote><p>InnoDB 为每个事务都构造了一个数组，用来保存在这个事务启动瞬间，已经存在的<strong>已启动但还没提交的所有事务</strong>的ID.<br>数组里面事务ID的最小值记为<strong>低水位</strong>，当前系统里面已经创建过的事务 ID 的最大值加 1 记为<strong>高水位</strong></p><p>此时, 事务ID针对这个数组有三种情况:</p><ol><li>小于低水位，表示这个版本是已提交的事务或者是当前事务自己生成的，这个数据是<strong>可见</strong>的；</li><li>大于高水位，表示这个版本是由将来启动的事务生成的，是肯定<strong>不可见</strong>的；</li><li>在低水位和高水位之间，又包括两种情况<ul><li>若 row trx_id 在数组中，表示这个版本是由还没提交的事务生成的，<strong>不可见</strong>；</li><li>若 row trx_id 不在数组中，表示这个版本是已经提交了的事务生成的，<strong>可见</strong>。</li></ul></li></ol><h3 id="3-3-串行化"><a href="#3-3-串行化" class="headerlink" title="3.3 串行化"></a>3.3 串行化</h3><p>“串行化”隔离级别下直接用加锁的方式来避免并行访问</p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> mysql </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>Linux命令大全</title>
+      <link href="/2019/12/30/%E8%AF%BB%E4%B9%A6/Linux%E5%91%BD%E4%BB%A4%E5%A4%A7%E5%85%A8/"/>
+      <url>/2019/12/30/%E8%AF%BB%E4%B9%A6/Linux%E5%91%BD%E4%BB%A4%E5%A4%A7%E5%85%A8/</url>
+      
+        <content type="html"><![CDATA[<ol><li>软链接是硬链接的一个升级版, 解决硬链接不能跨磁盘 .. 的两个问题</li><li>mkdir可以接受多个参数依次创建</li><li>ln -s 软链接</li><li>linux 输出分为标准输出和错误(状态)输出</li><li>重定向操作符 &gt; , &gt;&gt;(新增不覆盖)</li><li><code>&gt; [fileName]</code> 可以清空文件</li><li><code>&amp;&gt;</code> 可以同时将标准输出和错误输出输出出来</li><li>创建软链接时使用相对路径比较好</li><li>位桶 (dev/null) , 接收输入但不做任何操作,(消失了), 可以用来隐藏一个输出信息</li><li></li></ol>]]></content>
+      
+      
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>程序员的自我修养</title>
+      <link href="/2019/12/29/%E8%AF%BB%E4%B9%A6/%E7%A8%8B%E5%BA%8F%E5%91%98%E7%9A%84%E8%87%AA%E6%88%91%E4%BF%AE%E5%85%BB/"/>
+      <url>/2019/12/29/%E8%AF%BB%E4%B9%A6/%E7%A8%8B%E5%BA%8F%E5%91%98%E7%9A%84%E8%87%AA%E6%88%91%E4%BF%AE%E5%85%BB/</url>
+      
+        <content type="html"><![CDATA[<blockquote><p><strong>计算机科学领域的任何问题都可以通过增加一个间接的中间层来解决</strong><br>Anyproblem in computer science can be solved by another layer of indirection </p></blockquote>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> 读书 </tag>
+            
+            <tag> 技术 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>Docker_软件安装</title>
+      <link href="/2019/12/26/Linux/Docker_%E8%BD%AF%E4%BB%B6%E5%AE%89%E8%A3%85/"/>
+      <url>/2019/12/26/Linux/Docker_%E8%BD%AF%E4%BB%B6%E5%AE%89%E8%A3%85/</url>
+      
+        <content type="html"><![CDATA[<p>[toc]</p><h2 id="1-软件安装"><a href="#1-软件安装" class="headerlink" title="1. 软件安装"></a>1. 软件安装</h2><p><strong>常用命令</strong>:</p><ul><li>搜索镜像 : <code>docker search &lt;name&gt;</code> </li><li>查看下载的镜像 : <code>docker images</code></li><li>查看运行中的容器 : <code>docker ps</code> / <code>docker ps -a</code></li><li>启动容器 : <code>docker run &lt;option&gt; &lt;argument&gt;</code><ul><li>-d 后台启动</li><li>-p 端口映射</li><li>-v 将主机中的目录挂载到容器</li></ul></li><li>进入容器 : <code>docker exec -it &lt;name&gt; bash</code></li><li>重启容器 : <code>docker restart &lt;name&gt;</code></li><li>停止容器 : <code>docker stop &lt;name&gt;</code></li><li>删除容器 : <code>docker rm &lt;name&gt;</code></li></ul><h3 id="1-1-tomcat安装"><a href="#1-1-tomcat安装" class="headerlink" title="1.1 tomcat安装"></a>1.1 tomcat安装</h3><ol><li>下载镜像 : <code>docker pull tomcat</code></li><li>启动容器 : <code>docker run -d -p 8080:8080 -v /opt/tomcat/webapps:/usr/local/tomcat/webapps/test tomcat:latest</code><blockquote><p>将主机中的目录/opt/tomcat/webapps的/test下, <em>注意不要挂载到容器的webapps下, 这样会webapps会做为一个空目录,配制文件丢失</em></p></blockquote></li></ol><p>参考 : </p><ol><li><a href="https://www.runoob.com/docker/docker-install-tomcat.html" target="_blank" rel="noopener">https://www.runoob.com/docker/docker-install-tomcat.html</a></li></ol><h3 id="1-2-nginx安装"><a href="#1-2-nginx安装" class="headerlink" title="1.2 nginx安装"></a>1.2 nginx安装</h3>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> docker </tag>
+            
+            <tag> linux </tag>
+            
+            <tag> tomcat </tag>
+            
+            <tag> nginx </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>Java8实战-常用函数式接口</title>
+      <link href="/2019/12/20/Java/Java8%E5%AE%9E%E6%88%98-%E5%B8%B8%E7%94%A8%E5%87%BD%E6%95%B0%E5%BC%8F%E6%8E%A5%E5%8F%A3/"/>
+      <url>/2019/12/20/Java/Java8%E5%AE%9E%E6%88%98-%E5%B8%B8%E7%94%A8%E5%87%BD%E6%95%B0%E5%BC%8F%E6%8E%A5%E5%8F%A3/</url>
+      
+        <content type="html"><![CDATA[<p>[toc]</p><p><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191220011454.png" alt><br><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191220011514.png" alt></p><h2 id="1-Predicate-谓语"><a href="#1-Predicate-谓语" class="headerlink" title="1. Predicate(谓语)"></a>1. Predicate(谓语)</h2><p><code>java.util.function.Predicate&lt;T&gt;</code>接口定义了一个名叫test的抽象方法，它<strong>接受泛型T对象</strong>，并<strong>返回一个boolean</strong>, 适合于需要根据多种不同的判断条件获取不同值的情况</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> &lt;T&gt; <span class="function"><span class="keyword">void</span> <span class="title">judgeString</span><span class="params">(String param,Predicate&lt;T&gt; judge)</span></span>&#123;</span><br><span class="line">    <span class="keyword">if</span>(judge.test(param))&#123;</span><br><span class="line">        System.out.print(param)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// "aa"</span></span><br><span class="line">judgeString(<span class="string">"aa"</span>, t -&gt; Ojbects.equals(t , <span class="string">"aa"</span>))</span><br></pre></td></tr></table></figure><h2 id="2-Consumer"><a href="#2-Consumer" class="headerlink" title="2. Consumer"></a>2. Consumer</h2><p><code>java.util.function.Consumer&lt;T&gt;</code>定义了一个名叫accept的抽象方法，它接受泛型T的对象，没有返回（void),如果需要访问类型T的对象，并对其执行某些操作，就可以使用这个接口</p><h2 id="3-Function"><a href="#3-Function" class="headerlink" title="3. Function"></a>3. Function</h2><p><code>java.util.function.Function&lt;T, R&gt;</code>接口定义了一个叫作apply的方法，它接受一个 泛型T的对象，并返回一个泛型R的对象. 。如果你需要定义一个Lambda，将输入对象的信息映射到输出，就可以使用这个接口</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">Class Uses&#123;</span><br><span class="line">    <span class="keyword">private</span> Strng name;</span><br><span class="line">    <span class="keyword">private</span> Integer age;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> &lt;T, R&gt; <span class="function">List&lt;R&gt; <span class="title">getList</span><span class="params">(List&lt;T&gt; param, Function&lt;T, R&gt; f)</span></span>&#123;</span><br><span class="line">        <span class="keyword">return</span> param.stream()</span><br><span class="line">                .map(f)</span><br><span class="line">                .collect(Collectors.toList());</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 获取list中Uses对应的名字属性, 并转为一个新的列表</span></span><br><span class="line">List&lt;Users&gt; param;</span><br><span class="line">getList(param, Param::getName())</span><br></pre></td></tr></table></figure>]]></content>
       
       
       
@@ -23,9 +101,9 @@
     
     
     <entry>
-      <title>Java8-行为参数化</title>
-      <link href="/2019/12/20/Java8-%E8%A1%8C%E4%B8%BA%E5%8F%82%E6%95%B0%E5%8C%96/"/>
-      <url>/2019/12/20/Java8-%E8%A1%8C%E4%B8%BA%E5%8F%82%E6%95%B0%E5%8C%96/</url>
+      <title>Java8实战-行为参数化</title>
+      <link href="/2019/12/20/Java/Java8%E5%AE%9E%E6%88%98-%E8%A1%8C%E4%B8%BA%E5%8F%82%E6%95%B0%E5%8C%96/"/>
+      <url>/2019/12/20/Java/Java8%E5%AE%9E%E6%88%98-%E8%A1%8C%E4%B8%BA%E5%8F%82%E6%95%B0%E5%8C%96/</url>
       
         <content type="html"><![CDATA[<p>[toc]</p><h2 id="1-行为参数化"><a href="#1-行为参数化" class="headerlink" title="1. 行为参数化"></a>1. 行为参数化</h2><p>一言以蔽之, 就是将行为传传递给一个方法, 从而实现代码整体逻辑的复用, 使代码更加的简洁,灵活</p><blockquote><p>有点类似于匿名内部类, 但比他更加的简洁, 易读</p></blockquote><h2 id="2-实现"><a href="#2-实现" class="headerlink" title="2. 实现"></a>2. 实现</h2><blockquote><ol><li>需要一个函数式接口</li><li>用Lambda表示的行为</li></ol></blockquote><h3 id="2-1-函数式接口"><a href="#2-1-函数式接口" class="headerlink" title="2.1 函数式接口"></a>2.1 函数式接口</h3><p>就是只定义<strong>一个抽象方法</strong>的接口(<em>就算有许多的默认方法, 只要中定义了一个抽象方法, 就仍是函数式接口</em>)</p><h3 id="2-2-Lambda表达式"><a href="#2-2-Lambda表达式" class="headerlink" title="2.2 Lambda表达式"></a>2.2 Lambda表达式</h3><p>一种可以简洁的传递匿名函数的方式, 包含了 参数列表, 函数主体, 返回类型<br>主要语法为 : <strong>(参数) -&gt; 主体</strong> 或 <strong>(参数) -&gt; {主体}</strong></p><p><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191220011408.png" alt></p>]]></content>
       
@@ -95,8 +173,8 @@
     
     <entry>
       <title>JAVA中判断对象中某些指定的字段是否为空</title>
-      <link href="/2019/11/26/JAVA%E4%B8%AD%E5%88%A4%E6%96%AD%E5%AF%B9%E8%B1%A1%E4%B8%AD%E6%9F%90%E4%BA%9B%E6%8C%87%E5%AE%9A%E7%9A%84%E5%AD%97%E6%AE%B5%E6%98%AF%E5%90%A6%E4%B8%BA%E7%A9%BA/"/>
-      <url>/2019/11/26/JAVA%E4%B8%AD%E5%88%A4%E6%96%AD%E5%AF%B9%E8%B1%A1%E4%B8%AD%E6%9F%90%E4%BA%9B%E6%8C%87%E5%AE%9A%E7%9A%84%E5%AD%97%E6%AE%B5%E6%98%AF%E5%90%A6%E4%B8%BA%E7%A9%BA/</url>
+      <link href="/2019/11/26/Java/JAVA%E4%B8%AD%E5%88%A4%E6%96%AD%E5%AF%B9%E8%B1%A1%E4%B8%AD%E6%9F%90%E4%BA%9B%E6%8C%87%E5%AE%9A%E7%9A%84%E5%AD%97%E6%AE%B5%E6%98%AF%E5%90%A6%E4%B8%BA%E7%A9%BA/"/>
+      <url>/2019/11/26/Java/JAVA%E4%B8%AD%E5%88%A4%E6%96%AD%E5%AF%B9%E8%B1%A1%E4%B8%AD%E6%9F%90%E4%BA%9B%E6%8C%87%E5%AE%9A%E7%9A%84%E5%AD%97%E6%AE%B5%E6%98%AF%E5%90%A6%E4%B8%BA%E7%A9%BA/</url>
       
         <content type="html"><![CDATA[<p>[toc]</p><blockquote><p>可以使用 自定义注解 + 反射来实现, 这样可以为不同的字段添加不同的注解以分类判断</p></blockquote><h2 id="1-自定义注解"><a href="#1-自定义注解" class="headerlink" title="1. 自定义注解"></a>1. 自定义注解</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 字段、枚举的常量</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@Target</span>(ElementType.FIELD)</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 注解会在class字节码文件中存在，在运行时可以通过反射获取到</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@Retention</span>(RetentionPolicy.RUNTIME)</span><br><span class="line"><span class="keyword">public</span> <span class="meta">@interface</span> TypeOne &#123;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><h2 id="2-测试对象"><a href="#2-测试对象" class="headerlink" title="2. 测试对象"></a>2. 测试对象</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Data</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ParamTest</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@TypeOne</span></span><br><span class="line">    <span class="keyword">private</span> String name = <span class="string">"testName"</span>;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@TypeOne</span></span><br><span class="line">    <span class="keyword">private</span> Integer age;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><h2 id="3-判断方法"><a href="#3-判断方法" class="headerlink" title="3. 判断方法"></a>3. 判断方法</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">boolean</span> <span class="title">fieldIncludeNull</span><span class="params">(Object trueParam, Class&lt;? extends Annotation&gt; anno)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line"></span><br><span class="line">    Field[] declaredFields = trueParam.getClass().getDeclaredFields();</span><br><span class="line">    <span class="keyword">for</span> (Field fields : declaredFields) &#123;</span><br><span class="line">        fields.setAccessible(<span class="keyword">true</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 判断字段是否有对应注解</span></span><br><span class="line">        <span class="keyword">if</span>(fields.getAnnotation(anno) != <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="comment">// 判断字段值是否为null</span></span><br><span class="line">            <span class="keyword">if</span>(Objects.equals(fields.get(trueParam), <span class="keyword">null</span>)) &#123;</span><br><span class="line">                <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><h2 id="调用"><a href="#调用" class="headerlink" title="调用"></a>调用</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Boolean result = fieldIncludeNull(paramTest,TypeOne<span class="class">.<span class="keyword">class</span>)</span>;</span><br></pre></td></tr></table></figure><p><code>result =&gt; true</code></p><blockquote><p>返回true, 说明加上这个注解的字段存在null值</p></blockquote>]]></content>
       

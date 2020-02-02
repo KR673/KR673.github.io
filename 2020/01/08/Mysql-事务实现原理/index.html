@@ -51,17 +51,17 @@
   };
 </script>
 
-  <meta name="description" content="[toc] 1. 事务的档四种隔离级别 读未提交 : 一个事务可以读到另一个事务没有提交的数据 读已提交 : 一个事务可以读到另一个事务已提交的数据 可重复读 : 只读在该事务开始之前的数据 串行化 : 所有事务都是串行的  2. mysql中数据查询与更新过程2.1 查询过程mysql8中已经没有...">
+  <meta name="description" content="[toc] 1. 事务的档四种隔离级别 读未提交 : 一个事务可以读到其他事务没有提交的数据 读已提交 : 一个事务可以读到其他事务已提交的数据 可重复读 : 只读在该事务开始这个时刻之前的数据 串行化 : 所有事务都是串行的  2. mysql中数据查询与更新过程2.1 查询过程mysql8中已经...">
 <meta name="keywords" content="mysql">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Mysql-事务实现原理">
+<meta property="og:title" content="MySQL-事务实现原理">
 <meta property="og:url" content="https:&#x2F;&#x2F;kr673.github.io&#x2F;2020&#x2F;01&#x2F;08&#x2F;Mysql-%E4%BA%8B%E5%8A%A1%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86&#x2F;index.html">
 <meta property="og:site_name" content="KR673&#39;s Note">
-<meta property="og:description" content="[toc] 1. 事务的档四种隔离级别 读未提交 : 一个事务可以读到另一个事务没有提交的数据 读已提交 : 一个事务可以读到另一个事务已提交的数据 可重复读 : 只读在该事务开始之前的数据 串行化 : 所有事务都是串行的  2. mysql中数据查询与更新过程2.1 查询过程mysql8中已经没有...">
+<meta property="og:description" content="[toc] 1. 事务的档四种隔离级别 读未提交 : 一个事务可以读到其他事务没有提交的数据 读已提交 : 一个事务可以读到其他事务已提交的数据 可重复读 : 只读在该事务开始这个时刻之前的数据 串行化 : 所有事务都是串行的  2. mysql中数据查询与更新过程2.1 查询过程mysql8中已经...">
 <meta property="og:locale" content="zh-CN">
 <meta property="og:image" content="https:&#x2F;&#x2F;mynoteimg.oss-cn-beijing.aliyuncs.com&#x2F;20200109002655.png">
 <meta property="og:image" content="https:&#x2F;&#x2F;mynoteimg.oss-cn-beijing.aliyuncs.com&#x2F;20200109002601.png">
-<meta property="og:updated_time" content="2020-01-08T17:21:11.503Z">
+<meta property="og:updated_time" content="2020-01-16T15:33:32.587Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:image" content="https:&#x2F;&#x2F;mynoteimg.oss-cn-beijing.aliyuncs.com&#x2F;20200109002655.png">
 
@@ -79,7 +79,7 @@
   };
 </script>
 
-  <title>Mysql-事务实现原理 | KR673's Note</title>
+  <title>MySQL-事务实现原理 | KR673's Note</title>
   
 
 
@@ -228,7 +228,7 @@
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          Mysql-事务实现原理
+          MySQL-事务实现原理
         </h1>
 
         <div class="post-meta">
@@ -254,9 +254,9 @@
       
         <p>[toc]</p>
 <h2 id="1-事务的档四种隔离级别"><a href="#1-事务的档四种隔离级别" class="headerlink" title="1. 事务的档四种隔离级别"></a>1. 事务的档四种隔离级别</h2><ul>
-<li><strong>读未提交</strong> : 一个事务可以读到另一个事务没有提交的数据</li>
-<li><strong>读已提交</strong> : 一个事务可以读到另一个事务已提交的数据</li>
-<li><strong>可重复读</strong> : 只读在该事务开始之前的数据</li>
+<li><strong>读未提交</strong> : 一个事务可以读到其他事务没有提交的数据</li>
+<li><strong>读已提交</strong> : 一个事务可以读到其他事务已提交的数据</li>
+<li><strong>可重复读</strong> : 只读在该事务开始这个时刻之前的数据</li>
 <li><strong>串行化</strong> : 所有事务都是串行的</li>
 </ul>
 <h2 id="2-mysql中数据查询与更新过程"><a href="#2-mysql中数据查询与更新过程" class="headerlink" title="2. mysql中数据查询与更新过程"></a>2. mysql中数据查询与更新过程</h2><h3 id="2-1-查询过程"><a href="#2-1-查询过程" class="headerlink" title="2.1 查询过程"></a>2.1 查询过程</h3><p><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20200109002655.png" alt><br><strong>mysql8中已经没有查询缓存, 直接查询内存中缓存的数据</strong></p>
@@ -266,15 +266,15 @@
 <blockquote>
 <p>这里的视图<strong>不是虚拟表</strong>, 而是InnoDB 在实现 MVCC 时用到的<strong>一致性读视图</strong>，即 <em>consistent read view</em>, 其<strong>没有物理结构</strong>,是在需要的时候根据当前版本和 undo log <strong>计算出来的</strong>。</p>
 </blockquote>
-<p>InnoDB 里面每个事务有一个<strong>唯一</strong>的事务ID，叫作 transaction id. <strong>每行数据也都是有多个版本的</strong>。每次事务更新数据的时候，都会生成一个新的数据版本，并且把 transaction id赋值给这个数据版本的事务ID，记为 row trx_id。之前每个版本的值都可以根据最后一个值加上回滚日志计算获得, 也就是说之前版本的值并不是真实存在的</p>
-<h3 id="3-2-1-读提交"><a href="#3-2-1-读提交" class="headerlink" title="3.2.1 读提交"></a>3.2.1 读提交</h3><blockquote>
-<p>视图是在每个 SQL 语句开始执行的时候创建的</p>
-</blockquote>
-<h3 id="3-2-2-可重复读"><a href="#3-2-2-可重复读" class="headerlink" title="3.2.2 可重复读"></a>3.2.2 可重复读</h3><blockquote>
+<p>InnoDB 里面每个事务有一个<strong>唯一</strong>的事务ID，叫作 transaction id. <strong>每行数据也都是有多个版本的</strong>。每次事务更新数据的时候，都会生成一个新的数据版本，并且把 transaction id赋值给这个数据版本的事务ID，记为 row trx_id。之前每个版本的值都可以根据最后一个值加上回滚日志计算获得, 也就是说之前版本的值并不是物理上真实存在的, 只是逻辑上存在的</p>
+<h4 id="3-2-1-可重复读"><a href="#3-2-1-可重复读" class="headerlink" title="3.2.1 可重复读"></a>3.2.1 可重复读</h4><blockquote>
 <p>视图是在事务启动时创建的，整个事务存在期间都用这个视图。</p>
 </blockquote>
 <p>InnoDB 为每个事务都构造了一个数组，用来保存在这个事务启动瞬间，已经存在的<strong>已启动但还没提交的所有事务</strong>的ID.<br>数组里面事务ID的最小值记为<strong>低水位</strong>，当前系统里面已经创建过的事务 ID 的最大值加 1 记为<strong>高水位</strong></p>
-<p>此时, 事务ID针对这个数组有三种情况:</p>
+<p><strong>如何保证一个事务的执行期间看到的数据是一致的呢?</strong>,就要由当前的事务ID针对以下三种情况判断: </p>
+<blockquote>
+<p>一个事务更新内存中的一条记录的时候,会同时在数据行中记录下更新事务的ID(也可以看做是版本号), 当前事务就是用当前数据中记录的ID与之前创建的数组做比较</p>
+</blockquote>
 <ol>
 <li>小于低水位，表示这个版本是已提交的事务或者是当前事务自己生成的，这个数据是<strong>可见</strong>的；</li>
 <li>大于高水位，表示这个版本是由将来启动的事务生成的，是肯定<strong>不可见</strong>的；</li>
@@ -284,7 +284,26 @@
 </ul>
 </li>
 </ol>
+<h4 id="3-2-2-读提交"><a href="#3-2-2-读提交" class="headerlink" title="3.2.2 读提交"></a>3.2.2 读提交</h4><blockquote>
+<p>视图是在每个 SQL 语句开始执行的时候创建的(<strong>需要注意这个创建时间</strong>)</p>
+</blockquote>
+<p><strong>以下当前均为猜想, 未验证</strong></p>
+<p>由目前的理解,<br>先反证一下, 如果读提交同样也是从事务创建的时间创建视图, 当执行查询语句的时候:</p>
+<ol>
+<li>可以判断出当前事务创建之前提交的数据</li>
+<li>可以判断出当前事务创建的时候对应事务的状态, (提交与未提交)</li>
+<li>可以判断出当前事务创建之后<strong>更新</strong>的数据, 但是此时没有办法通过这个快照判断出这个数据是否已提交</li>
+</ol>
+<p>所以此时如果通过在查询语句开始的时候创建视图, 从而最大承度此时包含未提交与已提交的所有事务, 也即是最大程度的保证不会出现高水位之后的数据</p>
 <h3 id="3-3-串行化"><a href="#3-3-串行化" class="headerlink" title="3.3 串行化"></a>3.3 串行化</h3><p>“串行化”隔离级别下直接用加锁的方式来避免并行访问</p>
+<h2 id="4-更新逻辑"><a href="#4-更新逻辑" class="headerlink" title="4. 更新逻辑"></a>4. 更新逻辑</h2><p>对于更新, 更新数据都是先读后写, 这个读只能读当前的值, 称为’当前读’, 即<strong>读取已经提交完成的最新版本</strong>。(类似于读提交)<br>当更新一个数据的时候,当前读需要对当前数据加锁, 如果有其他一个事务A还没有提交, 就需要等事务A先释放锁才能断续当前读</p>
+<h2 id="5-回滚操作"><a href="#5-回滚操作" class="headerlink" title="5. 回滚操作"></a>5. 回滚操作</h2><p>语句的更新操作会生成undo log(回滚日志), 相当于当前执行语句的反向操作,需要回滚的时候根据日志回滚 </p>
+<blockquote>
+<p>不是很具体, 之后再研究</p>
+</blockquote>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考:"></a>参考:</h2><ol>
+<li><a href="https://time.geekbang.org/column/article/68963?code=4WJqZ1Li-NcKqeoaSUYtndaTkiX07wVYoGc8y9Fh9z8%3D" target="_blank" rel="noopener">MySQL实战45讲</a></li>
+</ol>
 
     </div>
 
@@ -300,7 +319,7 @@
   </li>
   <li class="post-copyright-link">
     <strong>本文链接：</strong>
-    <a href="https://kr673.github.io/2020/01/08/Mysql-%E4%BA%8B%E5%8A%A1%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/" title="Mysql-事务实现原理">https://kr673.github.io/2020/01/08/Mysql-%E4%BA%8B%E5%8A%A1%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/</a>
+    <a href="https://kr673.github.io/2020/01/08/Mysql-%E4%BA%8B%E5%8A%A1%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/" title="MySQL-事务实现原理">https://kr673.github.io/2020/01/08/Mysql-%E4%BA%8B%E5%8A%A1%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/</a>
   </li>
   <li class="post-copyright-license">
     <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/null" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
@@ -327,6 +346,9 @@
             <span class="post-nav-divider"></span>
 
             <div class="post-nav-prev post-nav-item">
+                <a href="/2020/01/14/MySQL-%E7%B4%A2%E5%BC%95/" rel="prev" title="MySQL-索引">
+                  MySQL-索引 <i class="fa fa-chevron-right"></i>
+                </a>
             </div>
           </div>
       </footer>
@@ -365,7 +387,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-事务的档四种隔离级别"><span class="nav-number">1.</span> <span class="nav-text">1. 事务的档四种隔离级别</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-mysql中数据查询与更新过程"><span class="nav-number">2.</span> <span class="nav-text">2. mysql中数据查询与更新过程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-查询过程"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 查询过程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-更新过程"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 更新过程</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-事务实现原理"><span class="nav-number">3.</span> <span class="nav-text">3. 事务实现原理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-读未提交"><span class="nav-number">3.1.</span> <span class="nav-text">3.1 读未提交</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-读已提交及可重复读"><span class="nav-number">3.2.</span> <span class="nav-text">3.2 读已提交及可重复读</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-1-读提交"><span class="nav-number">3.3.</span> <span class="nav-text">3.2.1 读提交</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-2-可重复读"><span class="nav-number">3.4.</span> <span class="nav-text">3.2.2 可重复读</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-串行化"><span class="nav-number">3.5.</span> <span class="nav-text">3.3 串行化</span></a></li></ol></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-事务的档四种隔离级别"><span class="nav-text">1. 事务的档四种隔离级别</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-mysql中数据查询与更新过程"><span class="nav-text">2. mysql中数据查询与更新过程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-查询过程"><span class="nav-text">2.1 查询过程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-更新过程"><span class="nav-text">2.2 更新过程</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-事务实现原理"><span class="nav-text">3. 事务实现原理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-读未提交"><span class="nav-text">3.1 读未提交</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-读已提交及可重复读"><span class="nav-text">3.2 读已提交及可重复读</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-1-可重复读"><span class="nav-text">3.2.1 可重复读</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-2-读提交"><span class="nav-text">3.2.2 读提交</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-串行化"><span class="nav-text">3.3 串行化</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-更新逻辑"><span class="nav-text">4. 更新逻辑</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-回滚操作"><span class="nav-text">5. 回滚操作</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考"><span class="nav-text">参考:</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
@@ -383,20 +405,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">16</span>
+          <span class="site-state-item-count">22</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-count">4</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">16</span>
+        <span class="site-state-item-count">17</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
@@ -425,7 +447,7 @@
         <div class="widget-wrap">
             <div id="myCanvasContainer" class="widget tagcloud">
                 <canvas width="250" height="250" id="resCanvas" style="width=100%">
-                    <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/docker/" rel="tag">docker</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/hexo/" rel="tag">hexo</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/https/" rel="tag">https</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/java/" rel="tag">java</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/linux/" rel="tag">linux</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/mysql/" rel="tag">mysql</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/next/" rel="tag">next</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/nginx/" rel="tag">nginx</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/tomcat/" rel="tag">tomcat</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%9B%BE%E5%BA%8A/" rel="tag">图床</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%AD%A6%E4%B9%A0/" rel="tag">学习</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%80%9D%E8%80%83/" rel="tag">思考</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%8A%80%E6%9C%AF/" rel="tag">技术</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%BD%91%E7%BB%9C/" rel="tag">网络</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E8%8B%B1%E8%AF%AD/" rel="tag">英语</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E8%AF%BB%E4%B9%A6/" rel="tag">读书</a><span class="tag-list-count">4</span></li></ul>
+                    <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/docker/" rel="tag">docker</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/hexo/" rel="tag">hexo</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/https/" rel="tag">https</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/java/" rel="tag">java</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/linux/" rel="tag">linux</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/mysql/" rel="tag">mysql</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/next/" rel="tag">next</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/nginx/" rel="tag">nginx</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/tomcat/" rel="tag">tomcat</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E4%BB%A3%E7%90%86/" rel="tag">代理</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%9B%BE%E5%BA%8A/" rel="tag">图床</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%AD%A6%E4%B9%A0/" rel="tag">学习</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%80%9D%E8%80%83/" rel="tag">思考</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%8A%80%E6%9C%AF/" rel="tag">技术</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%BD%91%E7%BB%9C/" rel="tag">网络</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E8%8B%B1%E8%AF%AD/" rel="tag">英语</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E8%AF%BB%E4%B9%A6/" rel="tag">读书</a><span class="tag-list-count">7</span></li></ul>
                 </canvas>
             </div>
         </div>

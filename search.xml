@@ -1,345 +1,615 @@
 <?xml version="1.0" encoding="utf-8"?>
-<search> 
-  
-  
-    
-    <entry>
-      <title>Mysql-事务实现原理</title>
-      <link href="/2020/01/08/Mysql-%E4%BA%8B%E5%8A%A1%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/"/>
-      <url>/2020/01/08/Mysql-%E4%BA%8B%E5%8A%A1%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/</url>
-      
-        <content type="html"><![CDATA[<p>[toc]</p><h2 id="1-事务的档四种隔离级别"><a href="#1-事务的档四种隔离级别" class="headerlink" title="1. 事务的档四种隔离级别"></a>1. 事务的档四种隔离级别</h2><ul><li><strong>读未提交</strong> : 一个事务可以读到另一个事务没有提交的数据</li><li><strong>读已提交</strong> : 一个事务可以读到另一个事务已提交的数据</li><li><strong>可重复读</strong> : 只读在该事务开始之前的数据</li><li><strong>串行化</strong> : 所有事务都是串行的</li></ul><h2 id="2-mysql中数据查询与更新过程"><a href="#2-mysql中数据查询与更新过程" class="headerlink" title="2. mysql中数据查询与更新过程"></a>2. mysql中数据查询与更新过程</h2><h3 id="2-1-查询过程"><a href="#2-1-查询过程" class="headerlink" title="2.1 查询过程"></a>2.1 查询过程</h3><p><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20200109002655.png" alt><br><strong>mysql8中已经没有查询缓存, 直接查询内存中缓存的数据</strong></p><h3 id="2-2-更新过程"><a href="#2-2-更新过程" class="headerlink" title="2.2 更新过程"></a>2.2 更新过程</h3><p><strong>首先查询对应的过程也会执行一边</strong><br><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20200109002601.png" alt></p><h2 id="3-事务实现原理"><a href="#3-事务实现原理" class="headerlink" title="3. 事务实现原理"></a>3. 事务实现原理</h2><h3 id="3-1-读未提交"><a href="#3-1-读未提交" class="headerlink" title="3.1 读未提交"></a>3.1 读未提交</h3><p>“读未提交”隔离级别下直接返回记录上的最新值，这里的最新值指的是<strong>缓冲池(内存)</strong>中的值, 因为更新的时候是<strong>直接更新的内存</strong>,不管有没有提交, 只是把提交状态记录在redo-log里</p><h3 id="3-2-读已提交及可重复读"><a href="#3-2-读已提交及可重复读" class="headerlink" title="3.2 读已提交及可重复读"></a>3.2 读已提交及可重复读</h3><p>这两个在实现上类似, 数据库里面会创建一个<strong>视图</strong>(快照)，访问的时候<strong>以视图的逻辑结果为准</strong>。</p><blockquote><p>这里的视图<strong>不是虚拟表</strong>, 而是InnoDB 在实现 MVCC 时用到的<strong>一致性读视图</strong>，即 <em>consistent read view</em>, 其<strong>没有物理结构</strong>,是在需要的时候根据当前版本和 undo log <strong>计算出来的</strong>。</p></blockquote><p>InnoDB 里面每个事务有一个<strong>唯一</strong>的事务ID，叫作 transaction id. <strong>每行数据也都是有多个版本的</strong>。每次事务更新数据的时候，都会生成一个新的数据版本，并且把 transaction id赋值给这个数据版本的事务ID，记为 row trx_id。之前每个版本的值都可以根据最后一个值加上回滚日志计算获得, 也就是说之前版本的值并不是真实存在的</p><h3 id="3-2-1-读提交"><a href="#3-2-1-读提交" class="headerlink" title="3.2.1 读提交"></a>3.2.1 读提交</h3><blockquote><p>视图是在每个 SQL 语句开始执行的时候创建的</p></blockquote><h3 id="3-2-2-可重复读"><a href="#3-2-2-可重复读" class="headerlink" title="3.2.2 可重复读"></a>3.2.2 可重复读</h3><blockquote><p>视图是在事务启动时创建的，整个事务存在期间都用这个视图。</p></blockquote><p>InnoDB 为每个事务都构造了一个数组，用来保存在这个事务启动瞬间，已经存在的<strong>已启动但还没提交的所有事务</strong>的ID.<br>数组里面事务ID的最小值记为<strong>低水位</strong>，当前系统里面已经创建过的事务 ID 的最大值加 1 记为<strong>高水位</strong></p><p>此时, 事务ID针对这个数组有三种情况:</p><ol><li>小于低水位，表示这个版本是已提交的事务或者是当前事务自己生成的，这个数据是<strong>可见</strong>的；</li><li>大于高水位，表示这个版本是由将来启动的事务生成的，是肯定<strong>不可见</strong>的；</li><li>在低水位和高水位之间，又包括两种情况<ul><li>若 row trx_id 在数组中，表示这个版本是由还没提交的事务生成的，<strong>不可见</strong>；</li><li>若 row trx_id 不在数组中，表示这个版本是已经提交了的事务生成的，<strong>可见</strong>。</li></ul></li></ol><h3 id="3-3-串行化"><a href="#3-3-串行化" class="headerlink" title="3.3 串行化"></a>3.3 串行化</h3><p>“串行化”隔离级别下直接用加锁的方式来避免并行访问</p>]]></content>
-      
-      
-      
-        <tags>
-            
-            <tag> mysql </tag>
-            
-        </tags>
-      
-    </entry>
-    
-    
-    
-    <entry>
-      <title>Linux命令大全</title>
-      <link href="/2019/12/30/%E8%AF%BB%E4%B9%A6/Linux%E5%91%BD%E4%BB%A4%E5%A4%A7%E5%85%A8/"/>
-      <url>/2019/12/30/%E8%AF%BB%E4%B9%A6/Linux%E5%91%BD%E4%BB%A4%E5%A4%A7%E5%85%A8/</url>
-      
-        <content type="html"><![CDATA[<ol><li>软链接是硬链接的一个升级版, 解决硬链接不能跨磁盘 .. 的两个问题</li><li>mkdir可以接受多个参数依次创建</li><li>ln -s 软链接</li><li>linux 输出分为标准输出和错误(状态)输出</li><li>重定向操作符 &gt; , &gt;&gt;(新增不覆盖)</li><li><code>&gt; [fileName]</code> 可以清空文件</li><li><code>&amp;&gt;</code> 可以同时将标准输出和错误输出输出出来</li><li>创建软链接时使用相对路径比较好</li><li>位桶 (dev/null) , 接收输入但不做任何操作,(消失了), 可以用来隐藏一个输出信息</li><li></li></ol>]]></content>
-      
-      
-      
-    </entry>
-    
-    
-    
-    <entry>
-      <title>程序员的自我修养</title>
-      <link href="/2019/12/29/%E8%AF%BB%E4%B9%A6/%E7%A8%8B%E5%BA%8F%E5%91%98%E7%9A%84%E8%87%AA%E6%88%91%E4%BF%AE%E5%85%BB/"/>
-      <url>/2019/12/29/%E8%AF%BB%E4%B9%A6/%E7%A8%8B%E5%BA%8F%E5%91%98%E7%9A%84%E8%87%AA%E6%88%91%E4%BF%AE%E5%85%BB/</url>
-      
-        <content type="html"><![CDATA[<blockquote><p><strong>计算机科学领域的任何问题都可以通过增加一个间接的中间层来解决</strong><br>Anyproblem in computer science can be solved by another layer of indirection </p></blockquote>]]></content>
-      
-      
-      
-        <tags>
-            
-            <tag> 读书 </tag>
-            
-            <tag> 技术 </tag>
-            
-        </tags>
-      
-    </entry>
-    
-    
-    
-    <entry>
-      <title>Docker_软件安装</title>
-      <link href="/2019/12/26/Linux/Docker_%E8%BD%AF%E4%BB%B6%E5%AE%89%E8%A3%85/"/>
-      <url>/2019/12/26/Linux/Docker_%E8%BD%AF%E4%BB%B6%E5%AE%89%E8%A3%85/</url>
-      
-        <content type="html"><![CDATA[<p>[toc]</p><h2 id="1-软件安装"><a href="#1-软件安装" class="headerlink" title="1. 软件安装"></a>1. 软件安装</h2><p><strong>常用命令</strong>:</p><ul><li>搜索镜像 : <code>docker search &lt;name&gt;</code> </li><li>查看下载的镜像 : <code>docker images</code></li><li>查看运行中的容器 : <code>docker ps</code> / <code>docker ps -a</code></li><li>启动容器 : <code>docker run &lt;option&gt; &lt;argument&gt;</code><ul><li>-d 后台启动</li><li>-p 端口映射</li><li>-v 将主机中的目录挂载到容器</li></ul></li><li>进入容器 : <code>docker exec -it &lt;name&gt; bash</code></li><li>重启容器 : <code>docker restart &lt;name&gt;</code></li><li>停止容器 : <code>docker stop &lt;name&gt;</code></li><li>删除容器 : <code>docker rm &lt;name&gt;</code></li></ul><h3 id="1-1-tomcat安装"><a href="#1-1-tomcat安装" class="headerlink" title="1.1 tomcat安装"></a>1.1 tomcat安装</h3><ol><li>下载镜像 : <code>docker pull tomcat</code></li><li>启动容器 : <code>docker run -d -p 8080:8080 -v /opt/tomcat/webapps:/usr/local/tomcat/webapps/test tomcat:latest</code><blockquote><p>将主机中的目录/opt/tomcat/webapps的/test下, <em>注意不要挂载到容器的webapps下, 这样会webapps会做为一个空目录,配制文件丢失</em></p></blockquote></li></ol><p>参考 : </p><ol><li><a href="https://www.runoob.com/docker/docker-install-tomcat.html" target="_blank" rel="noopener">https://www.runoob.com/docker/docker-install-tomcat.html</a></li></ol><h3 id="1-2-nginx安装"><a href="#1-2-nginx安装" class="headerlink" title="1.2 nginx安装"></a>1.2 nginx安装</h3>]]></content>
-      
-      
-      
-        <tags>
-            
-            <tag> docker </tag>
-            
-            <tag> linux </tag>
-            
-            <tag> tomcat </tag>
-            
-            <tag> nginx </tag>
-            
-        </tags>
-      
-    </entry>
-    
-    
-    
-    <entry>
-      <title>Java8实战-常用函数式接口</title>
-      <link href="/2019/12/20/Java/Java8%E5%AE%9E%E6%88%98-%E5%B8%B8%E7%94%A8%E5%87%BD%E6%95%B0%E5%BC%8F%E6%8E%A5%E5%8F%A3/"/>
-      <url>/2019/12/20/Java/Java8%E5%AE%9E%E6%88%98-%E5%B8%B8%E7%94%A8%E5%87%BD%E6%95%B0%E5%BC%8F%E6%8E%A5%E5%8F%A3/</url>
-      
-        <content type="html"><![CDATA[<p>[toc]</p><p><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191220011454.png" alt><br><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191220011514.png" alt></p><h2 id="1-Predicate-谓语"><a href="#1-Predicate-谓语" class="headerlink" title="1. Predicate(谓语)"></a>1. Predicate(谓语)</h2><p><code>java.util.function.Predicate&lt;T&gt;</code>接口定义了一个名叫test的抽象方法，它<strong>接受泛型T对象</strong>，并<strong>返回一个boolean</strong>, 适合于需要根据多种不同的判断条件获取不同值的情况</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> &lt;T&gt; <span class="function"><span class="keyword">void</span> <span class="title">judgeString</span><span class="params">(String param,Predicate&lt;T&gt; judge)</span></span>&#123;</span><br><span class="line">    <span class="keyword">if</span>(judge.test(param))&#123;</span><br><span class="line">        System.out.print(param)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// "aa"</span></span><br><span class="line">judgeString(<span class="string">"aa"</span>, t -&gt; Ojbects.equals(t , <span class="string">"aa"</span>))</span><br></pre></td></tr></table></figure><h2 id="2-Consumer"><a href="#2-Consumer" class="headerlink" title="2. Consumer"></a>2. Consumer</h2><p><code>java.util.function.Consumer&lt;T&gt;</code>定义了一个名叫accept的抽象方法，它接受泛型T的对象，没有返回（void),如果需要访问类型T的对象，并对其执行某些操作，就可以使用这个接口</p><h2 id="3-Function"><a href="#3-Function" class="headerlink" title="3. Function"></a>3. Function</h2><p><code>java.util.function.Function&lt;T, R&gt;</code>接口定义了一个叫作apply的方法，它接受一个 泛型T的对象，并返回一个泛型R的对象. 。如果你需要定义一个Lambda，将输入对象的信息映射到输出，就可以使用这个接口</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">Class Uses&#123;</span><br><span class="line">    <span class="keyword">private</span> Strng name;</span><br><span class="line">    <span class="keyword">private</span> Integer age;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> &lt;T, R&gt; <span class="function">List&lt;R&gt; <span class="title">getList</span><span class="params">(List&lt;T&gt; param, Function&lt;T, R&gt; f)</span></span>&#123;</span><br><span class="line">        <span class="keyword">return</span> param.stream()</span><br><span class="line">                .map(f)</span><br><span class="line">                .collect(Collectors.toList());</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 获取list中Uses对应的名字属性, 并转为一个新的列表</span></span><br><span class="line">List&lt;Users&gt; param;</span><br><span class="line">getList(param, Param::getName())</span><br></pre></td></tr></table></figure>]]></content>
-      
-      
-      
-        <tags>
-            
-            <tag> java </tag>
-            
-        </tags>
-      
-    </entry>
-    
-    
-    
-    <entry>
-      <title>Java8实战-行为参数化</title>
-      <link href="/2019/12/20/Java/Java8%E5%AE%9E%E6%88%98-%E8%A1%8C%E4%B8%BA%E5%8F%82%E6%95%B0%E5%8C%96/"/>
-      <url>/2019/12/20/Java/Java8%E5%AE%9E%E6%88%98-%E8%A1%8C%E4%B8%BA%E5%8F%82%E6%95%B0%E5%8C%96/</url>
-      
-        <content type="html"><![CDATA[<p>[toc]</p><h2 id="1-行为参数化"><a href="#1-行为参数化" class="headerlink" title="1. 行为参数化"></a>1. 行为参数化</h2><p>一言以蔽之, 就是将行为传传递给一个方法, 从而实现代码整体逻辑的复用, 使代码更加的简洁,灵活</p><blockquote><p>有点类似于匿名内部类, 但比他更加的简洁, 易读</p></blockquote><h2 id="2-实现"><a href="#2-实现" class="headerlink" title="2. 实现"></a>2. 实现</h2><blockquote><ol><li>需要一个函数式接口</li><li>用Lambda表示的行为</li></ol></blockquote><h3 id="2-1-函数式接口"><a href="#2-1-函数式接口" class="headerlink" title="2.1 函数式接口"></a>2.1 函数式接口</h3><p>就是只定义<strong>一个抽象方法</strong>的接口(<em>就算有许多的默认方法, 只要中定义了一个抽象方法, 就仍是函数式接口</em>)</p><h3 id="2-2-Lambda表达式"><a href="#2-2-Lambda表达式" class="headerlink" title="2.2 Lambda表达式"></a>2.2 Lambda表达式</h3><p>一种可以简洁的传递匿名函数的方式, 包含了 参数列表, 函数主体, 返回类型<br>主要语法为 : <strong>(参数) -&gt; 主体</strong> 或 <strong>(参数) -&gt; {主体}</strong></p><p><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191220011408.png" alt></p>]]></content>
-      
-      
-      
-        <tags>
-            
-            <tag> java </tag>
-            
-        </tags>
-      
-    </entry>
-    
-    
-    
-    <entry>
-      <title>𡕟肯锡高效阅读法</title>
-      <link href="/2019/12/14/%E8%AF%BB%E4%B9%A6/%E9%BA%A6%E8%82%AF%E9%94%A1%E7%B2%BE%E8%8B%B1%E9%AB%98%E6%95%88%E9%98%85%E8%AF%BB%E6%B3%95/"/>
-      <url>/2019/12/14/%E8%AF%BB%E4%B9%A6/%E9%BA%A6%E8%82%AF%E9%94%A1%E7%B2%BE%E8%8B%B1%E9%AB%98%E6%95%88%E9%98%85%E8%AF%BB%E6%B3%95/</url>
-      
-        <content type="html"><![CDATA[<h2 id="1-保证读书的时间"><a href="#1-保证读书的时间" class="headerlink" title="1. 保证读书的时间"></a>1. 保证读书的时间</h2><ol><li>将读书的优先级提前, 规定时间必需阅读</li><li>读完一本再读下一本</li></ol><h2 id="2-集中阅读-短时间内牢记内容"><a href="#2-集中阅读-短时间内牢记内容" class="headerlink" title="2. 集中阅读(短时间内牢记内容)"></a>2. 集中阅读(短时间内牢记内容)</h2><ol><li>阅读是不做笔记,需要的话只标注, 每次阅读后花一两分钟的时间立即做笔记</li><li>带着目的读书(想要学到什么)</li><li>不要重读, 遇到不懂的地方也继续读下去</li></ol><h2 id="3-学以致用"><a href="#3-学以致用" class="headerlink" title="3. 学以致用"></a>3. 学以致用</h2><ol><li>读完后立即写博客</li><li>半年后重读</li><li>限制阅读, 用更多的时间输出</li></ol><h2 id="4-读什么书"><a href="#4-读什么书" class="headerlink" title="4. 读什么书"></a>4. 读什么书</h2><ol><li>专业书和小说应该一半一半</li><li>多读长销书而非畅销书</li><li>对一个作者的书有感触应该再找他的书读</li><li>遇到问题了就多找几本相关的书去读</li><li>也要读一些不常关注的书(对一切事物持有问题意识)</li></ol>]]></content>
-      
-      
+<search>
+  <entry>
+    <title>有效学习</title>
+    <url>/2020/02/02/%E8%AF%BB%E4%B9%A6/%E6%9C%89%E6%95%88%E5%AD%A6%E4%B9%A0/</url>
+    <content><![CDATA[<p>[toc]</p>
+<p>这本书主要探讨如何使学习活动更加的有效. 其中以寻找<strong>价值感</strong>和设立<strong>目标</strong>作为学习的第一步, 之后则进入一个学习,应用, 融汇, 回顾的循环中将学习活动一直进行下去. 其中也提到了一些具体的学习方法用于提高学习效率.书中谈到了不少学习的方法, 但是感觉整体结构比较混乱, 每节里边串插了许多与章节无关的方法,而且其中一些例子与观点不相适应.总之可以了解许多的学习方法但是什么时候用什么方法还需要自己整理</p>
+<h2 id="1-结构"><a href="#1-结构" class="headerlink" title="1. 结构"></a>1. 结构</h2><p><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20200202160950.png" alt></p>
+<h2 id="2-观点"><a href="#2-观点" class="headerlink" title="2. 观点"></a>2. 观点</h2><h3 id="2-1-大脑是一套道路系统"><a href="#2-1-大脑是一套道路系统" class="headerlink" title="2.1 大脑是一套道路系统"></a>2.1 大脑是一套道路系统</h3><p>书中将大脑比作一套道路系统, 其中包含大路, 小路, 高速公路等, 这和另一本书&lt;&lt;<strong>如何高效学习</strong>&gt;&gt;中的观点类似. 主要提示出大脑理解,记忆事物的能力主要在于关联, 同时小路容易开辟但长时间不用也容易消失, 所以需要重复, 比喻等各种方法来保持和加深这种联系. 所以这些学习的方法都主要在于更好, 更快的开辟道路同时保持和建议更多的道路.</p>
+<h3 id="2-2-元认知"><a href="#2-2-元认知" class="headerlink" title="2.2 元认知"></a>2.2 元认知</h3><blockquote>
+<p>这个概念是我感觉在本书中学到的<strong>最重要</strong>的一个概念.</p>
+</blockquote>
+<p>元认知简单来说就是指<strong>关于思考的思考</strong>,书中主要将元认知的作用分为两个方面:</p>
+<ul>
+<li>规划: 可以判断出自己学到了哪些知识同时为需要学习什么知识做出指导<ul>
+<li>目标是什么?掌握了什么知识?还需要学习什么知识?</li>
+<li>… …</li>
+</ul>
+</li>
+<li>监控: 分析自己的思维过程, 判明其他的对错, 同加也加深了理解<ul>
+<li>运用了什么知识?为什么要在这件事?为什么这样想?</li>
+<li>… …</li>
+</ul>
+</li>
+</ul>
+<h2 id="3-整理"><a href="#3-整理" class="headerlink" title="3. 整理"></a>3. 整理</h2><p>根据书中学到的知识整理一个我认为比较合适的学习过程</p>
+<h3 id="3-1-第一步-价值感与目标"><a href="#3-1-第一步-价值感与目标" class="headerlink" title="3.1 第一步: 价值感与目标"></a>3.1 第一步: 价值感与目标</h3><p>关于价值感, 现在大多时候是不需要的, 因为本身要学习的很大一部分是自己想要学习的知识, 但是免不了一些时候需要学自己不感兴趣的知识, 这种时候就要先寻找价值感,具体的方法有:</p>
+<p>在一个学习活动开始的时候是<strong>必需设立目标</strong>的, 防止三心二意, 最好加上时间, 防止拖延.具体需要:</p>
+<h3 id="3-2-第二步-理解学习"><a href="#3-2-第二步-理解学习" class="headerlink" title="3.2 第二步: 理解学习"></a>3.2 第二步: 理解学习</h3><h3 id="3-3-第三步-应用-练习"><a href="#3-3-第三步-应用-练习" class="headerlink" title="3.3 第三步: 应用/练习"></a>3.3 第三步: 应用/练习</h3><h3 id="3-4-第四步-回顾反思"><a href="#3-4-第四步-回顾反思" class="headerlink" title="3.4 第四步: 回顾反思"></a>3.4 第四步: 回顾反思</h3><h3 id="3-5-第五步-拓展-gt-第一步"><a href="#3-5-第五步-拓展-gt-第一步" class="headerlink" title="3.5 第五步: 拓展 -&gt; 第一步"></a>3.5 第五步: 拓展 -&gt; 第一步</h3>]]></content>
       <categories>
-          
-          <category> 读书 </category>
-          
+        <category>读书</category>
       </categories>
-      
-      
-        <tags>
-            
-            <tag> 读书 </tag>
-            
-        </tags>
-      
-    </entry>
-    
-    
-    
-    <entry>
-      <title>代码大全</title>
-      <link href="/2019/12/05/%E8%AF%BB%E4%B9%A6/%E4%BB%A3%E7%A0%81%E5%A4%A7%E5%85%A8/"/>
-      <url>/2019/12/05/%E8%AF%BB%E4%B9%A6/%E4%BB%A3%E7%A0%81%E5%A4%A7%E5%85%A8/</url>
-      
-        <content type="html"><![CDATA[<p>[toc]</p><h2 id="语句"><a href="#语句" class="headerlink" title="语句"></a>语句</h2><h3 id="简化布尔表达式"><a href="#简化布尔表达式" class="headerlink" title="简化布尔表达式"></a>简化布尔表达式</h3><ul><li>复杂表达式做成布尔函数或变量</li><li>使用确定形式或者变量取反义</li><li>使用狄摩根定理<ul><li>对每一个运算对象取反</li><li>and / or 互换</li><li>整体取反</li></ul></li><li>使用括号分割表达式</li></ul><h3 id="优化深层嵌套"><a href="#优化深层嵌套" class="headerlink" title="优化深层嵌套"></a>优化深层嵌套</h3><ul><li>合并多个判断条件</li><li>转为if-then-else(if-else if-else)</li><li>转为 case 语句</li><li>防卫字句退出程序</li><li>多态</li><li>提取嵌套中的代码到单独的子程序中</li><li>…</li></ul><h3 id="衡量复杂度"><a href="#衡量复杂度" class="headerlink" title="衡量复杂度"></a>衡量复杂度</h3><ol><li>从1开始向下</li><li>遇到关键字(if, while, repeat, for, and, or)加1, </li><li>每一个case加1</li></ol><p>获得决策点的数量:</p><ul><li>0-5 : 还不错</li><li>6-10 : 需要简化子程序</li><li>10+ : 需要提取一个单独的了程序以做调用</li></ul><p><strong>决策点的数量只是作为一个警告, 不能死守规则</strong></p>]]></content>
-      
-      
+      <tags>
+        <tag>学习</tag>
+        <tag>读书</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>其他</title>
+    <url>/2020/01/28/%E5%85%B6%E4%BB%96/</url>
+    <content><![CDATA[<p>假设最后的彩蛋处于事件发生之后, 那么曲世爱没有死, 可知最后正崎应该是自杀了. 这样两个知道善恶为何物的两个人都死了, 世界将依旧讨论着自杀法的合理性, 不过有曲世爱的能力最终全世界通过自杀法也是可能的. 最终曲世爱的结局可能如巴比伦淫妇一般被自己掌握的兽反噬.</p>
+<p>不过表面上是在讨论自杀法的合理性, 其实一直在说一个主题即什么是善?什么是恶?美国总统和正崎得出的结论是善是持续, 恶是终结.但是这个结论是在生死的基础上得出的, 有点太过于简单, 回答不了其中提到的电车难题和器管抽获的问题这种以一定数量的死换取一定数量的生的问题</p>
+<p>按我想的, 善恶更像是一种公序良俗, 基准随着时间的发展一直在不断的变化, 而且不同立场的人对于同一件事的善恶评判也不一样.也就是同件事既可以是善, 也可以是恶, 这样想来的话那个持续各终结的结论也是可以的, 对于电车难题来说, 不管最后选择的是哪一方存活, 对于另一方的人来说都是恶的, 对这个行为的评判会有四个视角, 即自己, 存活的一方, 死亡的一方, 其他无关的人.如果铁轨上的两组人中又有特殊的关系, 评判又会更加的复杂.这样只能简化为<strong>一个人</strong>, 对于<strong>一个行为</strong>做出善恶的评价, 这样就是符合自己本心的为善, 不合的为恶.也就是说<strong>不存在这样方便的善恶公理</strong></p>
+<p><em>薛定谔的善恶</em> :)</p>
+]]></content>
+  </entry>
+  <entry>
+    <title>你当象鸟儿飞向你的山</title>
+    <url>/2020/01/25/%E8%AF%BB%E4%B9%A6/%E4%BD%A0%E5%BD%93%E8%B1%A1%E9%B8%9F%E5%84%BF%E9%A3%9E%E5%90%91%E4%BD%A0%E7%9A%84%E5%B1%B1/</url>
+    <content><![CDATA[<p>[toc]</p>
+<blockquote>
+<p>这是一个女孩通过教育一步步挣脱自小因家庭因素而形成的思想囚笼的故事</p>
+</blockquote>
+]]></content>
       <categories>
-          
-          <category> 读书 </category>
-          
+        <category>读书</category>
       </categories>
-      
-      
-        <tags>
-            
-            <tag> 读书 </tag>
-            
-            <tag> 技术 </tag>
-            
-        </tags>
-      
-    </entry>
-    
-    
-    
-    <entry>
-      <title>JAVA中判断对象中某些指定的字段是否为空</title>
-      <link href="/2019/11/26/Java/JAVA%E4%B8%AD%E5%88%A4%E6%96%AD%E5%AF%B9%E8%B1%A1%E4%B8%AD%E6%9F%90%E4%BA%9B%E6%8C%87%E5%AE%9A%E7%9A%84%E5%AD%97%E6%AE%B5%E6%98%AF%E5%90%A6%E4%B8%BA%E7%A9%BA/"/>
-      <url>/2019/11/26/Java/JAVA%E4%B8%AD%E5%88%A4%E6%96%AD%E5%AF%B9%E8%B1%A1%E4%B8%AD%E6%9F%90%E4%BA%9B%E6%8C%87%E5%AE%9A%E7%9A%84%E5%AD%97%E6%AE%B5%E6%98%AF%E5%90%A6%E4%B8%BA%E7%A9%BA/</url>
-      
-        <content type="html"><![CDATA[<p>[toc]</p><blockquote><p>可以使用 自定义注解 + 反射来实现, 这样可以为不同的字段添加不同的注解以分类判断</p></blockquote><h2 id="1-自定义注解"><a href="#1-自定义注解" class="headerlink" title="1. 自定义注解"></a>1. 自定义注解</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 字段、枚举的常量</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@Target</span>(ElementType.FIELD)</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 注解会在class字节码文件中存在，在运行时可以通过反射获取到</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@Retention</span>(RetentionPolicy.RUNTIME)</span><br><span class="line"><span class="keyword">public</span> <span class="meta">@interface</span> TypeOne &#123;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><h2 id="2-测试对象"><a href="#2-测试对象" class="headerlink" title="2. 测试对象"></a>2. 测试对象</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Data</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ParamTest</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@TypeOne</span></span><br><span class="line">    <span class="keyword">private</span> String name = <span class="string">"testName"</span>;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@TypeOne</span></span><br><span class="line">    <span class="keyword">private</span> Integer age;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><h2 id="3-判断方法"><a href="#3-判断方法" class="headerlink" title="3. 判断方法"></a>3. 判断方法</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">boolean</span> <span class="title">fieldIncludeNull</span><span class="params">(Object trueParam, Class&lt;? extends Annotation&gt; anno)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line"></span><br><span class="line">    Field[] declaredFields = trueParam.getClass().getDeclaredFields();</span><br><span class="line">    <span class="keyword">for</span> (Field fields : declaredFields) &#123;</span><br><span class="line">        fields.setAccessible(<span class="keyword">true</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 判断字段是否有对应注解</span></span><br><span class="line">        <span class="keyword">if</span>(fields.getAnnotation(anno) != <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="comment">// 判断字段值是否为null</span></span><br><span class="line">            <span class="keyword">if</span>(Objects.equals(fields.get(trueParam), <span class="keyword">null</span>)) &#123;</span><br><span class="line">                <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><h2 id="调用"><a href="#调用" class="headerlink" title="调用"></a>调用</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Boolean result = fieldIncludeNull(paramTest,TypeOne<span class="class">.<span class="keyword">class</span>)</span>;</span><br></pre></td></tr></table></figure><p><code>result =&gt; true</code></p><blockquote><p>返回true, 说明加上这个注解的字段存在null值</p></blockquote>]]></content>
-      
-      
-      
-        <tags>
-            
-            <tag> java </tag>
-            
-        </tags>
-      
-    </entry>
-    
-    
-    
-    <entry>
-      <title>英语学习工具推荐</title>
-      <link href="/2019/11/21/%E8%8B%B1%E8%AF%AD%E5%AD%A6%E4%B9%A0%E5%B7%A5%E5%85%B7%E6%8E%A8%E8%8D%90/"/>
-      <url>/2019/11/21/%E8%8B%B1%E8%AF%AD%E5%AD%A6%E4%B9%A0%E5%B7%A5%E5%85%B7%E6%8E%A8%E8%8D%90/</url>
-      
-        <content type="html"><![CDATA[<h2 id="软件"><a href="#软件" class="headerlink" title="软件"></a>软件</h2><ul><li>学习与复习的软件 : <strong>anki</strong></li><li>页面查词chrome插件: <strong>Saladict</strong></li></ul><h2 id="配合使用"><a href="#配合使用" class="headerlink" title="配合使用"></a>配合使用</h2><ol><li>Saladict可以添加生词本, 可以使用WebDAV同步生词(可以使用坚果云)</li><li>可以将Saladict中的生词导出, 之后可以直接导入到anki中 <a href="https://saladict.crimx.com/anki.html" target="_blank" rel="noopener">教程</a><br> <strong>注意:</strong><ul><li>导出是最好选将换行替换为<code>&lt;br&gt;</code></li><li>anki中选中<code>使用HTML排版</code></li></ul></li></ol>]]></content>
-      
-      
-      
-        <tags>
-            
-            <tag> 英语 </tag>
-            
-            <tag> 学习 </tag>
-            
-        </tags>
-      
-    </entry>
-    
-    
-    
-    <entry>
-      <title>https</title>
-      <link href="/2019/11/16/%E7%BD%91%E7%BB%9C/https/"/>
-      <url>/2019/11/16/%E7%BD%91%E7%BB%9C/https/</url>
-      
-        <content type="html"><![CDATA[<p>[toc]</p><p>一个简易的传输过程:</p><p><img src="www" alt></p><ul><li>C: 客户端</li><li>S: 服务端</li><li>cpk: CA机构公钥</li><li>csp: CA机构私钥</li><li>spk: 服务端公钥</li><li>ssk: 服务端私钥</li></ul><h2 id="1-具体的流程"><a href="#1-具体的流程" class="headerlink" title="1. 具体的流程:"></a>1. 具体的流程:</h2><ol><li>客户端向服务器传输客户端的SSL协议版本号，支持的加密算法的种类，产生的<strong>随机数Key1</strong>及其他信息</li><li>服务端确认双方使用的加密方法，同时产生<strong>随机数Key2</strong>，将其和证书一同发送给客户端</li><li>客户端验证服务器的合法性，<ul><li>证书是否过期，</li><li>发行服务器证书的CA是否可靠，</li><li>发行者的公钥能否正确解开服务器证书的”发行者的数字签名”，</li><li>服务器证书上的域名是否和服务的实际域名相匹配，<ol><li>如果合法性验证没有通过，通信将断开，</li><li>如果合法性验证通过，将继续向下进行；</li></ol></li></ul></li><li>客户端随机产生一个<strong>Pre-Master-Key</strong>，然后用服务器的公钥(从证书中获得)对其加密，然后将该Pre-Master-Key发送给服务器</li><li>服务器接收到Pre-Master-Key，则使用协商好的算法(H)计算出真正的用户通信过程中使用的对称加密<strong>密钥Master-Key(对话密钥)</strong>=H(随机数Key1+随机数Key2+PreMaster);</li><li>至此为止，服务器和客户端之间都得到Master-Key，之后的通信过程就使用Master-Key作为对称加密的密钥进行安全通信</li></ol><h2 id="2-相关概念"><a href="#2-相关概念" class="headerlink" title="2. 相关概念"></a>2. 相关概念</h2><ul><li><strong>对称加密</strong>: <strong>只有一个密钥</strong>, 加密解密都用它</li><li><strong>非对称加密</strong>: <strong>有两个不同的密钥</strong>, 公钥和私钥. 公钥加密私钥解密, 私钥加密公钥解密</li><li><strong>http</strong>: 超文本传输协议,是一个基于请求与响应，无状态的，应用层的协议,<strong>使用明文数据传输的网络协</strong>议,设计HTTP的初衷是为了提供一种发布和接收HTML页面的方法。</li><li><strong>https</strong>: 基于HTTP协议，<strong>通过SSL或TLS提供数据的加密处理</strong>、验证对方身份以及保护数据完整性</li><li><strong>CA</strong>: 证书颁发机构（CA, Certificate Authority）即颁发数字证书的机构,电子商务交易中受信任的第三方</li><li><strong>数字证书</strong>: CA机构通过服务器端发来的信息形成的一个证书信息, 其中包含信息如下:<br><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191117000430.png" alt></li></ul><h2 id="3-几个问题"><a href="#3-几个问题" class="headerlink" title="3. 几个问题"></a>3. 几个问题</h2><h3 id="3-1-客户端如何验证服务器证书的合法性"><a href="#3-1-客户端如何验证服务器证书的合法性" class="headerlink" title="3.1 客户端如何验证服务器证书的合法性?"></a>3.1 客户端如何验证服务器证书的合法性?</h3><h3 id="3-2-可以防止中间人攻击吗"><a href="#3-2-可以防止中间人攻击吗" class="headerlink" title="3.2 可以防止中间人攻击吗?"></a>3.2 可以防止中间人攻击吗?</h3><p>第3个随机数需要使用服务端的私钥获取, 所以一般的中间人方法不行.但也有其他的途径</p><h2 id="参考"><a href="#参考" class="headerlink" title="参考:"></a>参考:</h2><ol><li><a href="https://zhuanlan.zhihu.com/p/57142784" target="_blank" rel="noopener">漫画：什么是 HTTPS 协议？</a></li><li><a href="https://www.bilibili.com/video/av66187268" target="_blank" rel="noopener">HTTPS原理全解析</a></li><li><a href="https://segmentfault.com/a/1190000014835279?utm_source=tag-newest" target="_blank" rel="noopener">https服务的原理和实现</a></li><li><a href="https://blog.csdn.net/weixin_33932129/article/details/91418397" target="_blank" rel="noopener">3分钟告诉你什么是 非对称加密、对称加密、公钥、私钥、数字证书、数字签名、信息摘要、中间人攻击、CA、根证书</a></li><li><a href="https://www.cnblogs.com/gordon0918/p/5237717.html" target="_blank" rel="noopener">Https协议简析及中间人攻击原理</a></li><li><a href="https://www.zhihu.com/question/22795329" target="_blank" rel="noopener">HTTPS 可能被这样劫持吗？</a></li></ol>]]></content>
-      
-      
+      <tags>
+        <tag>读书</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>如何阅读一本书</title>
+    <url>/2020/01/21/%E8%AF%BB%E4%B9%A6/%E5%A6%82%E4%BD%95%E9%98%85%E8%AF%BB%E4%B8%80%E6%9C%AC%E4%B9%A6/</url>
+    <content><![CDATA[<p>[toc]</p>
+<p>本书是一本讲授有效的阅读一本书的技巧, 认为有效的阅读必需是主动且花费精力的, 其将阅读分为了基础阅读, 检视阅读, 分析阅读, 主题阅读四个层次,更高的层次总是包含较低的层次. 其中基阅读是阅读这项活动所必需的条件, 而检视阅读则是为国了解文章的主题及脉络的同时过滤掉非必读的书目, 之后由分析阅读掌握文章的结构及主旨, 最后的主题阅读被书中称为阅读的最终目的, 其作用是:  . 最终即是为了提升理解力, 增进心智.</p>
+<p><strong>需要说明的一点</strong>: 这些阅读的技巧并不适用于专业性书籍的阅读, 比如教科书这种讲授专业知识的书籍. 当然其中的部分技巧也是可以使用的, 但不可以生搬硬套.</p>
+<h2 id><a href="#" class="headerlink" title></a></h2><ul>
+<li>书中的分析阅读需要列出书籍的结构, 这个部分我认为使用思维导图也比较合适.</li>
+</ul>
+]]></content>
       <categories>
-          
-          <category> 网络 </category>
-          
+        <category>读书</category>
       </categories>
-      
-      
-        <tags>
-            
-            <tag> https </tag>
-            
-            <tag> 网络 </tag>
-            
-        </tags>
-      
-    </entry>
-    
-    
-    
-    <entry>
-      <title>白夜行</title>
-      <link href="/2019/11/16/%E8%AF%BB%E4%B9%A6/%E7%99%BD%E5%A4%9C%E8%A1%8C/"/>
-      <url>/2019/11/16/%E8%AF%BB%E4%B9%A6/%E7%99%BD%E5%A4%9C%E8%A1%8C/</url>
-      
-        <content type="html"><![CDATA[<blockquote><p>“喏，夏美，一天当中，有太阳升起的时候，也有下沉的时候。人生也一样，有白天和黑夜，只是不会像真正的太阳那样，有定时的日出和日落。看个人，有些人一辈子都活在太阳的照耀下，也有些人不得不一直活在漆黑的深夜里。人害怕的，就是本来一直存在的太阳落下不再升起，也就是非常害怕原本照在身上的光芒消失，现在的夏美就是这样。”</p></blockquote><p>她把别人推向黑夜, 取代太阳</p><blockquote><p>“我的天空里没有太阳，总是黑夜，但并不暗，因为有东西代替了太阳。虽然没有太阳那么明亮，但对我来说已经足够。凭借着这份光，我便能把黑夜当成白天。你明白吧？我从来就没有太阳，所以不怕失去。</p></blockquote><p>最终, 这份光也失去了</p><ul><li>桐原说自己的愿望是”在白天走路”, 自己的人生就像在白夜走路.美穗说自己的天空没有太阳,有东西代替了太阳,不难猜测这便是桐原, 这俩人互相依靠行走于白夜. 美穗憧憬着白天, 为此不择手段. 而桐原为了保护着美穗, 一样不择手段,同时也像是背负着父亲的罪恶</li><li>前半部分对美穗的描写另人不寒而栗, 最后的最后又用几段话和身世填补了她的形像, 不再是一个怪物, 而是一个悲惨又冷酷到极致的人(<em>也算是光怀效应吧</em>)</li><li>美穗的观察力另人印象深刻</li></ul><p>罪恶催生罪恶<br>没有注意到雪穗开的精品店, 名字是R&amp;Y, 这是亮司和雪穗缩写</p><h2 id="有几个疑问"><a href="#有几个疑问" class="headerlink" title="有几个疑问"></a>有几个疑问</h2><ol><li>美穗为什么要杀养母?</li><li>为什么在亮司杀死唐泽礼子之后，他回去说了一句:“一切都结束了”?</li></ol>]]></content>
-      
-      
+      <tags>
+        <tag>读书</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>配制代理</title>
+    <url>/2020/01/15/%E9%85%8D%E5%88%B6%E4%BB%A3%E7%90%86/</url>
+    <content><![CDATA[<p>[toc]</p>
+<h2 id="1-Windows"><a href="#1-Windows" class="headerlink" title="1. Windows"></a>1. Windows</h2><h2 id="2-Linux"><a href="#2-Linux" class="headerlink" title="2. Linux"></a>2. Linux</h2><h3 id="2-1-clash"><a href="#2-1-clash" class="headerlink" title="2.1 clash"></a>2.1 clash</h3><ol>
+<li><a href="https://github.com/ccg2018/ClashA/releases" target="_blank" rel="noopener">下载对应版本的clash软件</a></li>
+<li>解压软件<code>gz -d [软件]</code></li>
+<li>将解压出来的软件移动到 <code>/root/.config/bin</code> // 为什么在bin目录下就可以直接运行, 而其他地方不可以 ?</li>
+<li>直接输入文件名运行<ul>
+<li>会在<code>~/.config/clash</code>中生成config.yml文件</li>
+</ul>
+</li>
+</ol>
+<p><a href="https://www.shangzongyu.com/15585210302781.html" target="_blank" rel="noopener">参考</a></p>
+<h3 id="2-2-使用docker-compose-配制-clash"><a href="#2-2-使用docker-compose-配制-clash" class="headerlink" title="2.2 使用docker-compose 配制 clash"></a>2.2 使用docker-compose 配制 clash</h3><ol>
+<li>docker-compose文件</li>
+</ol>
+<figure class="highlight yml"><table><tr><td class="code"><pre><span class="line"><span class="attr">version:</span> <span class="string">'3'</span></span><br><span class="line"><span class="attr">services:</span></span><br><span class="line">  <span class="attr">clash:</span></span><br><span class="line">    <span class="attr">image:</span> <span class="string">dreamacro/clash</span></span><br><span class="line">    <span class="attr">volumes:</span></span><br><span class="line">        <span class="comment"># 这两个哪一个是docker, 哪一个是本机</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">./config.yaml:/root/.config/clash/config.yaml</span></span><br><span class="line">    <span class="attr">ports:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">"7890:7890"</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">"7891:7891"</span></span><br><span class="line">      <span class="comment"># If you need external controller, you can export this port.</span></span><br><span class="line">      <span class="comment"># - "8080:8080"</span></span><br><span class="line">    <span class="attr">restart:</span> <span class="string">always</span></span><br><span class="line">    <span class="comment"># When your system is Linux, you can use `network_mode: "host"` directly.</span></span><br><span class="line">    <span class="attr">network_mode:</span> <span class="string">"host"</span></span><br><span class="line">    <span class="attr">container_name:</span> <span class="string">clash</span></span><br></pre></td></tr></table></figure>
+<ul>
+<li>注意需要创建一下<strong>config.yaml</strong>文件和docker-compose文件放在一起</li>
+</ul>
+<p><a href="https://www.cnblogs.com/CodeAndMoe/p/clash-in-docker-linux.html" target="_blank" rel="noopener">参考</a></p>
+<p>在云服务器上配制的代理没有起作用, 需要再看一下</p>
+]]></content>
+      <tags>
+        <tag>代理</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>MySQL-索引</title>
+    <url>/2020/01/14/MySQL-%E7%B4%A2%E5%BC%95/</url>
+    <content><![CDATA[<p>[toc]</p>
+<h2 id="1-索引常见的模型"><a href="#1-索引常见的模型" class="headerlink" title="1. 索引常见的模型"></a>1. 索引常见的模型</h2><ol>
+<li>哈希表 : 因为需要根据key计算哈希值来查找数据, 所以<strong>只适用于等值查询</strong>(<em>精确查询</em>) </li>
+<li>二叉树 : <em>现在想来这种数据结构也只适用于等值查询 ?</em></li>
+<li>N叉树 : 为了减少不同层之间的询址时间对二叉树进行的优化</li>
+</ol>
+<p>其他的还有跳表、LSM 树等数据结构</p>
+<p>数据库底层存储的<strong>核心</strong>就是基于这些数据模型的。每碰到一个新数据库，我们需要先关注它的数据模型，这样才能从理论上分析出这个数据库的适用场景。</p>
+<h2 id="2-InnoDB的索引模型"><a href="#2-InnoDB的索引模型" class="headerlink" title="2. InnoDB的索引模型"></a>2. InnoDB的索引模型</h2><p>在Mysql中, 索引是由存储引擎实现的, 而InnoDB使用的是<strong>B+树</strong>模型, 所以<strong>数据都是存在B+树</strong>中</p>
+<p>现在有一个表, 其中有两个字段, 分别为主键<code>ID</code> 和 <code>K</code>(有索引的)<br>对应的五行数据为 <code>(100,1)、(200,2)、(300,3)、(500,5) 和 (600,6)</code></p>
+<p>则在InooDB中索引组织结构为下图:</p>
+<p><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20200114111845.png" alt></p>
+<p><strong>聚簇索引</strong> : 即主键索引, 由图中可以看出, 主键索引中key对应的是整条记录.<br><strong>二级索引</strong> : 即非键索引, 其value中保留的是主键值, 即如果需要根据非主键索引查询, 就需要多查询一次主键索引</p>
+<blockquote>
+<p>同时也说明了为什么对条件字段使用函数会导致索引失效, 对字段使用函数会改变这个字段对应的值, 在树中就会找不到对应的key , 所以引擎会放弃使用索引</p>
+</blockquote>
+]]></content>
+      <tags>
+        <tag>mysql</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>MySQL-事务实现原理</title>
+    <url>/2020/01/08/Mysql-%E4%BA%8B%E5%8A%A1%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/</url>
+    <content><![CDATA[<p>[toc]</p>
+<h2 id="1-事务的档四种隔离级别"><a href="#1-事务的档四种隔离级别" class="headerlink" title="1. 事务的档四种隔离级别"></a>1. 事务的档四种隔离级别</h2><ul>
+<li><strong>读未提交</strong> : 一个事务可以读到其他事务没有提交的数据</li>
+<li><strong>读已提交</strong> : 一个事务可以读到其他事务已提交的数据</li>
+<li><strong>可重复读</strong> : 只读在该事务开始这个时刻之前的数据</li>
+<li><strong>串行化</strong> : 所有事务都是串行的</li>
+</ul>
+<h2 id="2-mysql中数据查询与更新过程"><a href="#2-mysql中数据查询与更新过程" class="headerlink" title="2. mysql中数据查询与更新过程"></a>2. mysql中数据查询与更新过程</h2><h3 id="2-1-查询过程"><a href="#2-1-查询过程" class="headerlink" title="2.1 查询过程"></a>2.1 查询过程</h3><p><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20200109002655.png" alt><br><strong>mysql8中已经没有查询缓存, 直接查询内存中缓存的数据</strong></p>
+<h3 id="2-2-更新过程"><a href="#2-2-更新过程" class="headerlink" title="2.2 更新过程"></a>2.2 更新过程</h3><p><strong>首先查询对应的过程也会执行一边</strong><br><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20200109002601.png" alt></p>
+<h2 id="3-事务实现原理"><a href="#3-事务实现原理" class="headerlink" title="3. 事务实现原理"></a>3. 事务实现原理</h2><h3 id="3-1-读未提交"><a href="#3-1-读未提交" class="headerlink" title="3.1 读未提交"></a>3.1 读未提交</h3><p>“读未提交”隔离级别下直接返回记录上的最新值，这里的最新值指的是<strong>缓冲池(内存)</strong>中的值, 因为更新的时候是<strong>直接更新的内存</strong>,不管有没有提交, 只是把提交状态记录在redo-log里</p>
+<h3 id="3-2-读已提交及可重复读"><a href="#3-2-读已提交及可重复读" class="headerlink" title="3.2 读已提交及可重复读"></a>3.2 读已提交及可重复读</h3><p>这两个在实现上类似, 数据库里面会创建一个<strong>视图</strong>(快照)，访问的时候<strong>以视图的逻辑结果为准</strong>。</p>
+<blockquote>
+<p>这里的视图<strong>不是虚拟表</strong>, 而是InnoDB 在实现 MVCC 时用到的<strong>一致性读视图</strong>，即 <em>consistent read view</em>, 其<strong>没有物理结构</strong>,是在需要的时候根据当前版本和 undo log <strong>计算出来的</strong>。</p>
+</blockquote>
+<p>InnoDB 里面每个事务有一个<strong>唯一</strong>的事务ID，叫作 transaction id. <strong>每行数据也都是有多个版本的</strong>。每次事务更新数据的时候，都会生成一个新的数据版本，并且把 transaction id赋值给这个数据版本的事务ID，记为 row trx_id。之前每个版本的值都可以根据最后一个值加上回滚日志计算获得, 也就是说之前版本的值并不是物理上真实存在的, 只是逻辑上存在的</p>
+<h4 id="3-2-1-可重复读"><a href="#3-2-1-可重复读" class="headerlink" title="3.2.1 可重复读"></a>3.2.1 可重复读</h4><blockquote>
+<p>视图是在事务启动时创建的，整个事务存在期间都用这个视图。</p>
+</blockquote>
+<p>InnoDB 为每个事务都构造了一个数组，用来保存在这个事务启动瞬间，已经存在的<strong>已启动但还没提交的所有事务</strong>的ID.<br>数组里面事务ID的最小值记为<strong>低水位</strong>，当前系统里面已经创建过的事务 ID 的最大值加 1 记为<strong>高水位</strong></p>
+<p><strong>如何保证一个事务的执行期间看到的数据是一致的呢?</strong>,就要由当前的事务ID针对以下三种情况判断: </p>
+<blockquote>
+<p>一个事务更新内存中的一条记录的时候,会同时在数据行中记录下更新事务的ID(也可以看做是版本号), 当前事务就是用当前数据中记录的ID与之前创建的数组做比较</p>
+</blockquote>
+<ol>
+<li>小于低水位，表示这个版本是已提交的事务或者是当前事务自己生成的，这个数据是<strong>可见</strong>的；</li>
+<li>大于高水位，表示这个版本是由将来启动的事务生成的，是肯定<strong>不可见</strong>的；</li>
+<li>在低水位和高水位之间，又包括两种情况<ul>
+<li>若 row trx_id 在数组中，表示这个版本是由还没提交的事务生成的，<strong>不可见</strong>；</li>
+<li>若 row trx_id 不在数组中，表示这个版本是已经提交了的事务生成的，<strong>可见</strong>。</li>
+</ul>
+</li>
+</ol>
+<h4 id="3-2-2-读提交"><a href="#3-2-2-读提交" class="headerlink" title="3.2.2 读提交"></a>3.2.2 读提交</h4><blockquote>
+<p>视图是在每个 SQL 语句开始执行的时候创建的(<strong>需要注意这个创建时间</strong>)</p>
+</blockquote>
+<p><strong>以下当前均为猜想, 未验证</strong></p>
+<p>由目前的理解,<br>先反证一下, 如果读提交同样也是从事务创建的时间创建视图, 当执行查询语句的时候:</p>
+<ol>
+<li>可以判断出当前事务创建之前提交的数据</li>
+<li>可以判断出当前事务创建的时候对应事务的状态, (提交与未提交)</li>
+<li>可以判断出当前事务创建之后<strong>更新</strong>的数据, 但是此时没有办法通过这个快照判断出这个数据是否已提交</li>
+</ol>
+<p>所以此时如果通过在查询语句开始的时候创建视图, 从而最大承度此时包含未提交与已提交的所有事务, 也即是最大程度的保证不会出现高水位之后的数据</p>
+<h3 id="3-3-串行化"><a href="#3-3-串行化" class="headerlink" title="3.3 串行化"></a>3.3 串行化</h3><p>“串行化”隔离级别下直接用加锁的方式来避免并行访问</p>
+<h2 id="4-更新逻辑"><a href="#4-更新逻辑" class="headerlink" title="4. 更新逻辑"></a>4. 更新逻辑</h2><p>对于更新, 更新数据都是先读后写, 这个读只能读当前的值, 称为’当前读’, 即<strong>读取已经提交完成的最新版本</strong>。(类似于读提交)<br>当更新一个数据的时候,当前读需要对当前数据加锁, 如果有其他一个事务A还没有提交, 就需要等事务A先释放锁才能断续当前读</p>
+<h2 id="5-回滚操作"><a href="#5-回滚操作" class="headerlink" title="5. 回滚操作"></a>5. 回滚操作</h2><p>语句的更新操作会生成undo log(回滚日志), 相当于当前执行语句的反向操作,需要回滚的时候根据日志回滚 </p>
+<blockquote>
+<p>不是很具体, 之后再研究</p>
+</blockquote>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考:"></a>参考:</h2><ol>
+<li><a href="https://time.geekbang.org/column/article/68963?code=4WJqZ1Li-NcKqeoaSUYtndaTkiX07wVYoGc8y9Fh9z8%3D" target="_blank" rel="noopener">MySQL实战45讲</a></li>
+</ol>
+]]></content>
+      <tags>
+        <tag>mysql</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Linux命令大全</title>
+    <url>/2019/12/30/%E8%AF%BB%E4%B9%A6/Linux%E5%91%BD%E4%BB%A4%E5%A4%A7%E5%85%A8/</url>
+    <content><![CDATA[<ol>
+<li>软链接是硬链接的一个升级版, 解决硬链接不能跨磁盘 .. 的两个问题</li>
+<li>mkdir可以接受多个参数依次创建</li>
+<li>ln -s 软链接</li>
+<li>linux 输出分为标准输出和错误(状态)输出</li>
+<li>重定向操作符 &gt; , &gt;&gt;(新增不覆盖)</li>
+<li><code>&gt; [fileName]</code> 可以清空文件</li>
+<li><code>&amp;&gt;</code> 可以同时将标准输出和错误输出输出出来</li>
+<li>创建软链接时使用相对路径比较好</li>
+<li>位桶 (dev/null) , 接收输入但不做任何操作,(消失了), 可以用来隐藏一个输出信息</li>
+<li></li>
+</ol>
+]]></content>
       <categories>
-          
-          <category> 读书 </category>
-          
+        <category>读书</category>
       </categories>
-      
-      
-        <tags>
-            
-            <tag> 读书 </tag>
-            
-        </tags>
-      
-    </entry>
-    
-    
-    
-    <entry>
-      <title>思考必须使用语言?有没有更好or高效的方式?</title>
-      <link href="/2019/11/15/%E6%80%9D%E8%80%83%E5%BF%85%E9%A1%BB%E4%BD%BF%E7%94%A8%E8%AF%AD%E8%A8%80-%E6%9C%89%E6%B2%A1%E6%9C%89%E6%9B%B4%E5%A5%BDor%E9%AB%98%E6%95%88%E7%9A%84%E6%96%B9%E5%BC%8F/"/>
-      <url>/2019/11/15/%E6%80%9D%E8%80%83%E5%BF%85%E9%A1%BB%E4%BD%BF%E7%94%A8%E8%AF%AD%E8%A8%80-%E6%9C%89%E6%B2%A1%E6%9C%89%E6%9B%B4%E5%A5%BDor%E9%AB%98%E6%95%88%E7%9A%84%E6%96%B9%E5%BC%8F/</url>
-      
-        <content type="html"><![CDATA[]]></content>
-      
-      
-      
-        <tags>
-            
-            <tag> 思考 </tag>
-            
-        </tags>
-      
-    </entry>
-    
-    
-    
-    <entry>
-      <title>阿里oss+PicGo配制图床</title>
-      <link href="/2019/11/12/%E9%98%BF%E9%87%8Coss+PicGo%E9%85%8D%E5%88%B6%E5%9B%BE%E5%BA%8A/"/>
-      <url>/2019/11/12/%E9%98%BF%E9%87%8Coss+PicGo%E9%85%8D%E5%88%B6%E5%9B%BE%E5%BA%8A/</url>
-      
-        <content type="html"><![CDATA[<p>[toc]</p><h1 id="阿里oss-PicGo配制图床"><a href="#阿里oss-PicGo配制图床" class="headerlink" title="阿里oss+PicGo配制图床"></a>阿里oss+PicGo配制图床</h1><h2 id="1-购买阿里oss"><a href="#1-购买阿里oss" class="headerlink" title="1. 购买阿里oss"></a>1. 购买阿里oss</h2><p>按流量 / 包月, 按需购买即可, <strong>此处购买的只是空间, 流量另外付费</strong></p><h3 id="1-1-获取AccessKeys"><a href="#1-1-获取AccessKeys" class="headerlink" title="1.1 获取AccessKeys"></a>1.1 获取AccessKeys</h3><p><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191110012222.png" alt="0"></p><hr><blockquote><p>以下为RAM访问控制, 设置这个子用户更加的安全<br><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191110005443.png" alt="1"><br><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191110010153.png" alt="2"></p></blockquote><h2 id="2-下载并配制PicGo"><a href="#2-下载并配制PicGo" class="headerlink" title="2 下载并配制PicGo"></a>2 下载并配制PicGo</h2><h3 id="2-1-下载"><a href="#2-1-下载" class="headerlink" title="2.1 下载"></a>2.1 下载</h3><p><a href="https://github.com/Molunerfinn/PicGo/releases" target="_blank" rel="noopener">下载地址</a></p><h3 id="2-2-配制"><a href="#2-2-配制" class="headerlink" title="2.2 配制"></a>2.2 配制</h3><p><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191110010937.png" alt></p><ul><li>accesskey和accesskeySecret可以从阿里云控制台获取(刚刚设置的)。</li><li>存储空间名是bucket的名字。</li><li>存储区域到阿里云OSS控制台去找，例如下图中存储区域就是 <code>oss-cn-beijing</code><br><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191110010639.png" alt></li><li>存储路径是存储图片的位置，要求以/结尾,bucket中没有指定文件夹的话可以不填。</li><li>自定义域名可以不填写。</li></ul>]]></content>
-      
-      
-      
-        <tags>
-            
-            <tag> 图床 </tag>
-            
-        </tags>
-      
-    </entry>
-    
-    
-    
-    <entry>
-      <title>Github+hext搭建个人线上笔记</title>
-      <link href="/2019/11/12/github+hext%E6%90%AD%E5%BB%BA%E4%B8%AA%E4%BA%BA%E7%BA%BF%E4%B8%8A%E7%AC%94%E8%AE%B0/"/>
-      <url>/2019/11/12/github+hext%E6%90%AD%E5%BB%BA%E4%B8%AA%E4%BA%BA%E7%BA%BF%E4%B8%8A%E7%AC%94%E8%AE%B0/</url>
-      
-        <content type="html"><![CDATA[<p>[toc]</p><h1 id="Github-hext搭建个人线上笔记"><a href="#Github-hext搭建个人线上笔记" class="headerlink" title="Github+hext搭建个人线上笔记"></a>Github+hext搭建个人线上笔记</h1><h2 id="1-github"><a href="#1-github" class="headerlink" title="1. github"></a>1. github</h2><h3 id="1-1-创建仓库"><a href="#1-1-创建仓库" class="headerlink" title="1.1 创建仓库"></a>1.1 创建仓库</h3><p><strong>注意</strong> 这个名字最好的<code>用户名.github.io</code>, 因为之后使用hexo生成的静态文件中会使用 <code>/css/index.css</code>作为css的相对路径, 如果使用其他名字, github生成的网站地址会多出两级目录,导致找不到css和js文件</p><p><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191110222817.png" alt></p><h3 id="1-2-设置仓库"><a href="#1-2-设置仓库" class="headerlink" title="1.2 设置仓库"></a>1.2 设置仓库</h3><p>在仓库的设置中设置GitHub Pages 为 master</p><p><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191110223555.png" alt></p><h2 id="2-hexo"><a href="#2-hexo" class="headerlink" title="2. hexo"></a>2. hexo</h2><h3 id="2-1-安装"><a href="#2-1-安装" class="headerlink" title="2.1 安装"></a>2.1 安装</h3><blockquote><p>依照hexo的官方首页命令安装</p></blockquote><h3 id="2-2-布署"><a href="#2-2-布署" class="headerlink" title="2.2 布署"></a>2.2 布署</h3><h4 id="2-2-1-生成静态文件"><a href="#2-2-1-生成静态文件" class="headerlink" title="2.2.1 生成静态文件"></a>2.2.1 生成静态文件</h4><p>执行 : <code>hexo generate</code> 或 <code>hexo g</code></p><h4 id="2-2-2-上传到github"><a href="#2-2-2-上传到github" class="headerlink" title="2.2.2 上传到github"></a>2.2.2 上传到github</h4><ul><li><p>修改根目录下的_config.yml文件, repository改为刚刚创建的Github仓库SSh链接</p>  <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">deploy:</span><br><span class="line">type: git</span><br><span class="line">repository: git@github.com:KR673/note.github.io.git</span><br><span class="line">branch: master</span><br></pre></td></tr></table></figure><p>  <strong>注意</strong>这个repository使用<strong>SSH链接</strong>而不是https</p></li><li><p>执行 : <code>hexo deploy</code> 或 <code>hexo d</code></p></li></ul><h3 id="2-3-常用hexo命令"><a href="#2-3-常用hexo命令" class="headerlink" title="2.3 常用hexo命令"></a>2.3 常用hexo命令</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">hexo new &quot;postName&quot; #新建文章</span><br><span class="line">hexo new page &quot;pageName&quot; #新建页面</span><br><span class="line">hexo generate #生成静态页面至public目录</span><br><span class="line">hexo server #开启预览访问端口（默认端口4000，&apos;ctrl + c&apos;关闭server）</span><br><span class="line">hexo deploy #部署到GitHub</span><br><span class="line">hexo help  # 查看帮助</span><br><span class="line">hexo version  #查看Hexo的版本</span><br></pre></td></tr></table></figure><p>缩写：</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">hexo n == hexo new</span><br><span class="line">hexo g == hexo generate</span><br><span class="line">hexo s == hexo server</span><br><span class="line">hexo d == hexo deploy</span><br></pre></td></tr></table></figure><p>组合命令：</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">hexo s -g #生成并本地预览</span><br><span class="line">hexo d -g #生成并上传</span><br></pre></td></tr></table></figure>]]></content>
-      
-      
-      
-        <tags>
-            
-            <tag> hexo </tag>
-            
-        </tags>
-      
-    </entry>
-    
-    
-    
-    <entry>
-      <title>hexo&amp;next(v7.5.0)使用中与到的一些问题及使用技巧</title>
-      <link href="/2019/11/11/hexo&amp;next(v7.5.0)%E4%BD%BF%E7%94%A8%E4%B8%AD%E4%B8%8E%E5%88%B0%E7%9A%84%E4%B8%80%E4%BA%9B%E9%97%AE%E9%A2%98%E5%8F%8A%E4%BD%BF%E7%94%A8%E6%8A%80%E5%B7%A7/"/>
-      <url>/2019/11/11/hexo&amp;next(v7.5.0)%E4%BD%BF%E7%94%A8%E4%B8%AD%E4%B8%8E%E5%88%B0%E7%9A%84%E4%B8%80%E4%BA%9B%E9%97%AE%E9%A2%98%E5%8F%8A%E4%BD%BF%E7%94%A8%E6%8A%80%E5%B7%A7/</url>
-      
-        <content type="html"><![CDATA[<h1 id="hexo-amp-next-v7-5-0-使用中与到的一些问题及使用技巧"><a href="#hexo-amp-next-v7-5-0-使用中与到的一些问题及使用技巧" class="headerlink" title="hexo&amp;next(v7.5.0)使用中与到的一些问题及使用技巧"></a>hexo&amp;next(v7.5.0)使用中与到的一些问题及使用技巧</h1><h2 id="1-hexo"><a href="#1-hexo" class="headerlink" title="1. hexo"></a>1. hexo</h2><h3 id="1-1-默认会用相对路作为标题"><a href="#1-1-默认会用相对路作为标题" class="headerlink" title="1.1 默认会用相对路作为标题"></a>1.1 默认会用相对路作为标题</h3><p>如果_posts中有多级目录的话, <strong>默认会用相对路作为标题</strong>, 如<code>java/java基础</code>.<br>这就需要在文章头的 front-matter 中, 要加上<code>title</code>参数, 此时就会使用title中的名字作为标题</p><h3 id="1-2-创建文件时生成front-matter信息"><a href="#1-2-创建文件时生成front-matter信息" class="headerlink" title="1.2 创建文件时生成front-matter信息"></a>1.2 创建文件时生成front-matter信息</h3><p>使用<code>hexo new [文件名]</code>的方式会默认使用scaffolds中的post模板生成文件</p><h3 id="1-3-左侧添加标签云"><a href="#1-3-左侧添加标签云" class="headerlink" title="1.3 左侧添加标签云"></a>1.3 左侧添加标签云</h3><ol><li><a href="https://github.com/MikeCoder/hexo-tag-cloud" target="_blank" rel="noopener">插件地址</a></li><li><a href="https://blog.csdn.net/Aoman_Hao/article/details/89416634" target="_blank" rel="noopener">参考</a></li></ol><p>修改模板文件的时候需要加在里面<br><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191113203229.png" alt></p><h2 id="1-4-根据目录结构生成分类"><a href="#1-4-根据目录结构生成分类" class="headerlink" title="1.4 根据目录结构生成分类"></a>1.4 根据目录结构生成分类</h2><ol><li><a href="https://github.com/xu-song/hexo-auto-category" target="_blank" rel="noopener">插件地址</a></li><li><a href="https://blog.eson.org/pub/e2f6e239/" target="_blank" rel="noopener">参考</a></li></ol><p>注意修改的是根目录的配制文件</p><h2 id="2-next"><a href="#2-next" class="headerlink" title="2. next"></a>2. next</h2><h3 id="2-1-摘要显示图片"><a href="#2-1-摘要显示图片" class="headerlink" title="2.1 摘要显示图片"></a>2.1 摘要显示图片</h3><p>默认的方式是front-matter中添加<code>phothos</code>, 但是试了一下会报错, 目前不知道原因<br>现在通过修改<code>post.js</code>文件(<em>摘要的显示需要修改这个文件, 现在摘要的显示也是修改后的</em>), 添加<code>cover</code>来显示图片</p><h3 id="2-2-文章添加版权声明"><a href="#2-2-文章添加版权声明" class="headerlink" title="2.2 文章添加版权声明"></a>2.2 文章添加版权声明</h3><p>设置config中的 <code>creative_commons</code>, post 改为 true<br><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191113105946.png" alt></p><h3 id="2-3-添加gitalk评论"><a href="#2-3-添加gitalk评论" class="headerlink" title="2.3 添加gitalk评论"></a>2.3 添加gitalk评论</h3><p><a href="https://segmentfault.com/a/1190000014085547" target="_blank" rel="noopener">https://segmentfault.com/a/1190000014085547</a></p>]]></content>
-      
-      
-      
-        <tags>
-            
-            <tag> hexo </tag>
-            
-            <tag> next </tag>
-            
-        </tags>
-      
-    </entry>
-    
-    
-  
-  
+  </entry>
+  <entry>
+    <title>程序员的自我修养</title>
+    <url>/2019/12/29/%E8%AF%BB%E4%B9%A6/%E7%A8%8B%E5%BA%8F%E5%91%98%E7%9A%84%E8%87%AA%E6%88%91%E4%BF%AE%E5%85%BB/</url>
+    <content><![CDATA[<blockquote>
+<p><strong>计算机科学领域的任何问题都可以通过增加一个间接的中间层来解决</strong><br>Anyproblem in computer science can be solved by another layer of indirection </p>
+</blockquote>
+]]></content>
+      <categories>
+        <category>读书</category>
+      </categories>
+      <tags>
+        <tag>读书</tag>
+        <tag>技术</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Docker_软件安装</title>
+    <url>/2019/12/26/Linux/Docker_%E8%BD%AF%E4%BB%B6%E5%AE%89%E8%A3%85/</url>
+    <content><![CDATA[<p>[toc]</p>
+<h2 id="1-软件安装"><a href="#1-软件安装" class="headerlink" title="1. 软件安装"></a>1. 软件安装</h2><p><strong>常用命令</strong>:</p>
+<ul>
+<li>搜索镜像 : <code>docker search &lt;name&gt;</code> </li>
+<li>查看下载的镜像 : <code>docker images</code></li>
+<li>查看运行中的容器 : <code>docker ps</code> / <code>docker ps -a</code></li>
+<li>启动容器 : <code>docker run &lt;option&gt; &lt;argument&gt;</code><ul>
+<li>-d 后台启动</li>
+<li>-p 端口映射</li>
+<li>-v 将主机中的目录挂载到容器</li>
+</ul>
+</li>
+<li>进入容器 : <code>docker exec -it &lt;name&gt; bash</code></li>
+<li>重启容器 : <code>docker restart &lt;name&gt;</code></li>
+<li>停止容器 : <code>docker stop &lt;name&gt;</code></li>
+<li>删除容器 : <code>docker rm &lt;name&gt;</code></li>
+</ul>
+<h3 id="1-1-tomcat安装"><a href="#1-1-tomcat安装" class="headerlink" title="1.1 tomcat安装"></a>1.1 tomcat安装</h3><ol>
+<li>下载镜像 : <code>docker pull tomcat</code></li>
+<li>启动容器 : <code>docker run -d -p 8080:8080 -v /opt/tomcat/webapps:/usr/local/tomcat/webapps/test tomcat:latest</code><blockquote>
+<p>将主机中的目录/opt/tomcat/webapps的/test下, <em>注意不要挂载到容器的webapps下, 这样会webapps会做为一个空目录,配制文件丢失</em></p>
+</blockquote>
+</li>
+</ol>
+<p>参考 : </p>
+<ol>
+<li><a href="https://www.runoob.com/docker/docker-install-tomcat.html" target="_blank" rel="noopener">https://www.runoob.com/docker/docker-install-tomcat.html</a></li>
+</ol>
+<h3 id="1-2-nginx安装"><a href="#1-2-nginx安装" class="headerlink" title="1.2 nginx安装"></a>1.2 nginx安装</h3>]]></content>
+      <categories>
+        <category>Linux</category>
+      </categories>
+      <tags>
+        <tag>docker</tag>
+        <tag>linux</tag>
+        <tag>tomcat</tag>
+        <tag>nginx</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Java8实战-常用函数式接口</title>
+    <url>/2019/12/20/Java/Java8%E5%AE%9E%E6%88%98-%E5%B8%B8%E7%94%A8%E5%87%BD%E6%95%B0%E5%BC%8F%E6%8E%A5%E5%8F%A3/</url>
+    <content><![CDATA[<p>[toc]</p>
+<p><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191220011454.png" alt><br><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191220011514.png" alt></p>
+<h2 id="1-Predicate-谓语"><a href="#1-Predicate-谓语" class="headerlink" title="1. Predicate(谓语)"></a>1. Predicate(谓语)</h2><p><code>java.util.function.Predicate&lt;T&gt;</code>接口定义了一个名叫test的抽象方法，它<strong>接受泛型T对象</strong>，并<strong>返回一个boolean</strong>, 适合于需要根据多种不同的判断条件获取不同值的情况</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> &lt;T&gt; <span class="function"><span class="keyword">void</span> <span class="title">judgeString</span><span class="params">(String param,Predicate&lt;T&gt; judge)</span></span>&#123;</span><br><span class="line">    <span class="keyword">if</span>(judge.test(param))&#123;</span><br><span class="line">        System.out.print(param)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// "aa"</span></span><br><span class="line">judgeString(<span class="string">"aa"</span>, t -&gt; Ojbects.equals(t , <span class="string">"aa"</span>))</span><br></pre></td></tr></table></figure>
+
+<h2 id="2-Consumer"><a href="#2-Consumer" class="headerlink" title="2. Consumer"></a>2. Consumer</h2><p><code>java.util.function.Consumer&lt;T&gt;</code>定义了一个名叫accept的抽象方法，它接受泛型T的对象，没有返回（void),如果需要访问类型T的对象，并对其执行某些操作，就可以使用这个接口</p>
+<h2 id="3-Function"><a href="#3-Function" class="headerlink" title="3. Function"></a>3. Function</h2><p><code>java.util.function.Function&lt;T, R&gt;</code>接口定义了一个叫作apply的方法，它接受一个 泛型T的对象，并返回一个泛型R的对象. 。如果你需要定义一个Lambda，将输入对象的信息映射到输出，就可以使用这个接口</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line">Class Uses&#123;</span><br><span class="line">    <span class="keyword">private</span> Strng name;</span><br><span class="line">    <span class="keyword">private</span> Integer age;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> &lt;T, R&gt; <span class="function">List&lt;R&gt; <span class="title">getList</span><span class="params">(List&lt;T&gt; param, Function&lt;T, R&gt; f)</span></span>&#123;</span><br><span class="line">        <span class="keyword">return</span> param.stream()</span><br><span class="line">                .map(f)</span><br><span class="line">                .collect(Collectors.toList());</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 获取list中Uses对应的名字属性, 并转为一个新的列表</span></span><br><span class="line">List&lt;Users&gt; param;</span><br><span class="line">getList(param, Param::getName())</span><br></pre></td></tr></table></figure>]]></content>
+      <categories>
+        <category>Java</category>
+      </categories>
+      <tags>
+        <tag>java</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Java8实战-行为参数化</title>
+    <url>/2019/12/20/Java/Java8%E5%AE%9E%E6%88%98-%E8%A1%8C%E4%B8%BA%E5%8F%82%E6%95%B0%E5%8C%96/</url>
+    <content><![CDATA[<p>[toc]</p>
+<h2 id="1-行为参数化"><a href="#1-行为参数化" class="headerlink" title="1. 行为参数化"></a>1. 行为参数化</h2><p>一言以蔽之, 就是将行为传传递给一个方法, 从而实现代码整体逻辑的复用, 使代码更加的简洁,灵活</p>
+<blockquote>
+<p>有点类似于匿名内部类, 但比他更加的简洁, 易读</p>
+</blockquote>
+<h2 id="2-实现"><a href="#2-实现" class="headerlink" title="2. 实现"></a>2. 实现</h2><ol>
+<li>需要一个函数式接口</li>
+<li>用Lambda表示的行为</li>
+<li>由这个接口作为一个参数 </li>
+</ol>
+<p>将这个接口作为一个方法的参数时, 就可以传递由lambda表示的具体行为</p>
+<h3 id="2-1-函数式接口"><a href="#2-1-函数式接口" class="headerlink" title="2.1 函数式接口"></a>2.1 函数式接口</h3><p>就是只定义了<strong>一个抽象方法</strong>的接口(<em>就算有许多的默认方法, 只要中定义了一个抽象方法, 就仍是函数式接口</em>)</p>
+<blockquote>
+<p>因为之后<strong>相当于使用lambda表达式实现了这个方法</strong>, 是不可以指定要实现哪个方法的, 如果一个接口中包含多个抽象方法就无法确定实现的是哪一个</p>
+</blockquote>
+<p>对于函数式接口, 可以在接口上使用<code>@FunctionalInterface</code>注解, 目的是告诉编译器这是一个函数式接口, 如果此时接口中有多个抽象方法编译器就会报错</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 函数式接口</span></span><br><span class="line"><span class="meta">@FunctionalInterface</span> <span class="comment">// 可不加</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">FunctionInterface</span>&lt;<span class="title">T</span>&gt; </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">test</span><span class="params">(T a)</span></span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 调用</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">  <span class="comment">//使用lambda实现接口FunctionInterface的test方法</span></span><br><span class="line">  FunctionInterface functionInterface = a -&gt; System.out.println(a);</span><br><span class="line">  functionInterpret.test(<span class="string">"aa"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>-&gt; aa</code></p>
+<h3 id="2-2-Lambda表达式"><a href="#2-2-Lambda表达式" class="headerlink" title="2.2 Lambda表达式"></a>2.2 Lambda表达式</h3><p>一种可以简洁的传递匿名函数的方式, 包含了 参数列表, 函数主体, 返回类型<br>主要语法为 : <strong>(参数) -&gt; 主体</strong> 或 <strong>(参数) -&gt; {主体}</strong></p>
+<p><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191220011408.png" alt></p>
+]]></content>
+      <categories>
+        <category>Java</category>
+      </categories>
+      <tags>
+        <tag>java</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>麦肯锡高效阅读法</title>
+    <url>/2019/12/14/%E8%AF%BB%E4%B9%A6/%E9%BA%A6%E8%82%AF%E9%94%A1%E7%B2%BE%E8%8B%B1%E9%AB%98%E6%95%88%E9%98%85%E8%AF%BB%E6%B3%95/</url>
+    <content><![CDATA[<h2 id="1-保证读书的时间"><a href="#1-保证读书的时间" class="headerlink" title="1. 保证读书的时间"></a>1. 保证读书的时间</h2><ol>
+<li>将读书的优先级提前, 规定时间必需阅读</li>
+<li>读完一本再读下一本</li>
+</ol>
+<h2 id="2-集中阅读-短时间内牢记内容"><a href="#2-集中阅读-短时间内牢记内容" class="headerlink" title="2. 集中阅读(短时间内牢记内容)"></a>2. 集中阅读(短时间内牢记内容)</h2><ol>
+<li>阅读是不做笔记,需要的话只标注, 每次阅读后花一两分钟的时间立即做笔记</li>
+<li>带着目的读书(想要学到什么)</li>
+<li>不要重读, 遇到不懂的地方也继续读下去</li>
+</ol>
+<h2 id="3-学以致用"><a href="#3-学以致用" class="headerlink" title="3. 学以致用"></a>3. 学以致用</h2><ol>
+<li>读完后立即写博客</li>
+<li>半年后重读</li>
+<li>限制阅读, 用更多的时间输出</li>
+</ol>
+<h2 id="4-读什么书"><a href="#4-读什么书" class="headerlink" title="4. 读什么书"></a>4. 读什么书</h2><ol>
+<li>专业书和小说应该一半一半</li>
+<li>多读长销书而非畅销书</li>
+<li>对一个作者的书有感触应该再找他的书读</li>
+<li>遇到问题了就多找几本相关的书去读</li>
+<li>也要读一些不常关注的书(对一切事物持有问题意识)</li>
+</ol>
+]]></content>
+      <categories>
+        <category>读书</category>
+      </categories>
+      <tags>
+        <tag>读书</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>代码大全</title>
+    <url>/2019/12/05/%E8%AF%BB%E4%B9%A6/%E4%BB%A3%E7%A0%81%E5%A4%A7%E5%85%A8/</url>
+    <content><![CDATA[<p>[toc]</p>
+<h2 id="语句"><a href="#语句" class="headerlink" title="语句"></a>语句</h2><h3 id="简化布尔表达式"><a href="#简化布尔表达式" class="headerlink" title="简化布尔表达式"></a>简化布尔表达式</h3><ul>
+<li>复杂表达式做成布尔函数或变量</li>
+<li>使用确定形式或者变量取反义</li>
+<li>使用狄摩根定理<ul>
+<li>对每一个运算对象取反</li>
+<li>and / or 互换</li>
+<li>整体取反</li>
+</ul>
+</li>
+<li>使用括号分割表达式</li>
+</ul>
+<h3 id="优化深层嵌套"><a href="#优化深层嵌套" class="headerlink" title="优化深层嵌套"></a>优化深层嵌套</h3><ul>
+<li>合并多个判断条件</li>
+<li>转为if-then-else(if-else if-else)</li>
+<li>转为 case 语句</li>
+<li>防卫字句退出程序</li>
+<li>多态</li>
+<li>提取嵌套中的代码到单独的子程序中</li>
+<li>…</li>
+</ul>
+<h3 id="衡量复杂度"><a href="#衡量复杂度" class="headerlink" title="衡量复杂度"></a>衡量复杂度</h3><ol>
+<li>从1开始向下</li>
+<li>遇到关键字(if, while, repeat, for, and, or)加1, </li>
+<li>每一个case加1</li>
+</ol>
+<p>获得决策点的数量:</p>
+<ul>
+<li>0-5 : 还不错</li>
+<li>6-10 : 需要简化子程序</li>
+<li>10+ : 需要提取一个单独的了程序以做调用</li>
+</ul>
+<p><strong>决策点的数量只是作为一个警告, 不能死守规则</strong></p>
+]]></content>
+      <categories>
+        <category>读书</category>
+      </categories>
+      <tags>
+        <tag>读书</tag>
+        <tag>技术</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>JAVA中判断对象中某些指定的字段是否为空</title>
+    <url>/2019/11/26/Java/JAVA%E4%B8%AD%E5%88%A4%E6%96%AD%E5%AF%B9%E8%B1%A1%E4%B8%AD%E6%9F%90%E4%BA%9B%E6%8C%87%E5%AE%9A%E7%9A%84%E5%AD%97%E6%AE%B5%E6%98%AF%E5%90%A6%E4%B8%BA%E7%A9%BA/</url>
+    <content><![CDATA[<p>[toc]</p>
+<blockquote>
+<p>可以使用 自定义注解 + 反射来实现, 这样可以为不同的字段添加不同的注解以分类判断</p>
+</blockquote>
+<h2 id="1-自定义注解"><a href="#1-自定义注解" class="headerlink" title="1. 自定义注解"></a>1. 自定义注解</h2><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 字段、枚举的常量</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@Target</span>(ElementType.FIELD)</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 注解会在class字节码文件中存在，在运行时可以通过反射获取到</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@Retention</span>(RetentionPolicy.RUNTIME)</span><br><span class="line"><span class="keyword">public</span> <span class="meta">@interface</span> TypeOne &#123;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="2-测试对象"><a href="#2-测试对象" class="headerlink" title="2. 测试对象"></a>2. 测试对象</h2><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Data</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ParamTest</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@TypeOne</span></span><br><span class="line">    <span class="keyword">private</span> String name = <span class="string">"testName"</span>;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@TypeOne</span></span><br><span class="line">    <span class="keyword">private</span> Integer age;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="3-判断方法"><a href="#3-判断方法" class="headerlink" title="3. 判断方法"></a>3. 判断方法</h2><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">boolean</span> <span class="title">fieldIncludeNull</span><span class="params">(Object trueParam, Class&lt;? extends Annotation&gt; anno)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line"></span><br><span class="line">    Field[] declaredFields = trueParam.getClass().getDeclaredFields();</span><br><span class="line">    <span class="keyword">for</span> (Field fields : declaredFields) &#123;</span><br><span class="line">        fields.setAccessible(<span class="keyword">true</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 判断字段是否有对应注解</span></span><br><span class="line">        <span class="keyword">if</span>(fields.getAnnotation(anno) != <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="comment">// 判断字段值是否为null</span></span><br><span class="line">            <span class="keyword">if</span>(Objects.equals(fields.get(trueParam), <span class="keyword">null</span>)) &#123;</span><br><span class="line">                <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="调用"><a href="#调用" class="headerlink" title="调用"></a>调用</h2><figure class="highlight java"><table><tr><td class="code"><pre><span class="line">Boolean result = fieldIncludeNull(paramTest,TypeOne<span class="class">.<span class="keyword">class</span>)</span>;</span><br></pre></td></tr></table></figure>
+<p><code>result =&gt; true</code></p>
+<blockquote>
+<p>返回true, 说明加上这个注解的字段存在null值</p>
+</blockquote>
+]]></content>
+      <categories>
+        <category>Java</category>
+      </categories>
+      <tags>
+        <tag>java</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>英语学习工具推荐</title>
+    <url>/2019/11/21/%E8%8B%B1%E8%AF%AD%E5%AD%A6%E4%B9%A0%E5%B7%A5%E5%85%B7%E6%8E%A8%E8%8D%90/</url>
+    <content><![CDATA[<h2 id="软件"><a href="#软件" class="headerlink" title="软件"></a>软件</h2><ul>
+<li>学习与复习的软件 : <strong>anki</strong></li>
+<li>页面查词chrome插件: <strong>Saladict</strong></li>
+</ul>
+<h2 id="配合使用"><a href="#配合使用" class="headerlink" title="配合使用"></a>配合使用</h2><ol>
+<li>Saladict可以添加生词本, 可以使用WebDAV同步生词(可以使用坚果云)</li>
+<li>可以将Saladict中的生词导出, 之后可以直接导入到anki中 <a href="https://saladict.crimx.com/anki.html" target="_blank" rel="noopener">教程</a><br> <strong>注意:</strong><ul>
+<li>导出是最好选将换行替换为<code>&lt;br&gt;</code></li>
+<li>anki中选中<code>使用HTML排版</code></li>
+</ul>
+</li>
+</ol>
+]]></content>
+      <tags>
+        <tag>英语</tag>
+        <tag>学习</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>https</title>
+    <url>/2019/11/16/%E7%BD%91%E7%BB%9C/https/</url>
+    <content><![CDATA[<p>[toc]</p>
+<p>一个简易的传输过程:</p>
+<p><img src="www" alt></p>
+<ul>
+<li>C: 客户端</li>
+<li>S: 服务端</li>
+<li>cpk: CA机构公钥</li>
+<li>csp: CA机构私钥</li>
+<li>spk: 服务端公钥</li>
+<li>ssk: 服务端私钥</li>
+</ul>
+<h2 id="1-具体的流程"><a href="#1-具体的流程" class="headerlink" title="1. 具体的流程:"></a>1. 具体的流程:</h2><ol>
+<li>客户端向服务器传输客户端的SSL协议版本号，支持的加密算法的种类，产生的<strong>随机数Key1</strong>及其他信息</li>
+<li>服务端确认双方使用的加密方法，同时产生<strong>随机数Key2</strong>，将其和证书一同发送给客户端</li>
+<li>客户端验证服务器的合法性，<ul>
+<li>证书是否过期，</li>
+<li>发行服务器证书的CA是否可靠，</li>
+<li>发行者的公钥能否正确解开服务器证书的”发行者的数字签名”，</li>
+<li>服务器证书上的域名是否和服务的实际域名相匹配，<ol>
+<li>如果合法性验证没有通过，通信将断开，</li>
+<li>如果合法性验证通过，将继续向下进行；</li>
+</ol>
+</li>
+</ul>
+</li>
+<li>客户端随机产生一个<strong>Pre-Master-Key</strong>，然后用服务器的公钥(从证书中获得)对其加密，然后将该Pre-Master-Key发送给服务器</li>
+<li>服务器接收到Pre-Master-Key，则使用协商好的算法(H)计算出真正的用户通信过程中使用的对称加密<strong>密钥Master-Key(对话密钥)</strong>=H(随机数Key1+随机数Key2+PreMaster);</li>
+<li>至此为止，服务器和客户端之间都得到Master-Key，之后的通信过程就使用Master-Key作为对称加密的密钥进行安全通信</li>
+</ol>
+<h2 id="2-相关概念"><a href="#2-相关概念" class="headerlink" title="2. 相关概念"></a>2. 相关概念</h2><ul>
+<li><strong>对称加密</strong>: <strong>只有一个密钥</strong>, 加密解密都用它</li>
+<li><strong>非对称加密</strong>: <strong>有两个不同的密钥</strong>, 公钥和私钥. 公钥加密私钥解密, 私钥加密公钥解密</li>
+<li><strong>http</strong>: 超文本传输协议,是一个基于请求与响应，无状态的，应用层的协议,<strong>使用明文数据传输的网络协</strong>议,设计HTTP的初衷是为了提供一种发布和接收HTML页面的方法。</li>
+<li><strong>https</strong>: 基于HTTP协议，<strong>通过SSL或TLS提供数据的加密处理</strong>、验证对方身份以及保护数据完整性</li>
+<li><strong>CA</strong>: 证书颁发机构（CA, Certificate Authority）即颁发数字证书的机构,电子商务交易中受信任的第三方</li>
+<li><strong>数字证书</strong>: CA机构通过服务器端发来的信息形成的一个证书信息, 其中包含信息如下:<br><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191117000430.png" alt></li>
+</ul>
+<h2 id="3-几个问题"><a href="#3-几个问题" class="headerlink" title="3. 几个问题"></a>3. 几个问题</h2><h3 id="3-1-客户端如何验证服务器证书的合法性"><a href="#3-1-客户端如何验证服务器证书的合法性" class="headerlink" title="3.1 客户端如何验证服务器证书的合法性?"></a>3.1 客户端如何验证服务器证书的合法性?</h3><h3 id="3-2-可以防止中间人攻击吗"><a href="#3-2-可以防止中间人攻击吗" class="headerlink" title="3.2 可以防止中间人攻击吗?"></a>3.2 可以防止中间人攻击吗?</h3><p>第3个随机数需要使用服务端的私钥获取, 所以一般的中间人方法不行.但也有其他的途径</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考:"></a>参考:</h2><ol>
+<li><a href="https://zhuanlan.zhihu.com/p/57142784" target="_blank" rel="noopener">漫画：什么是 HTTPS 协议？</a></li>
+<li><a href="https://www.bilibili.com/video/av66187268" target="_blank" rel="noopener">HTTPS原理全解析</a></li>
+<li><a href="https://segmentfault.com/a/1190000014835279?utm_source=tag-newest" target="_blank" rel="noopener">https服务的原理和实现</a></li>
+<li><a href="https://blog.csdn.net/weixin_33932129/article/details/91418397" target="_blank" rel="noopener">3分钟告诉你什么是 非对称加密、对称加密、公钥、私钥、数字证书、数字签名、信息摘要、中间人攻击、CA、根证书</a></li>
+<li><a href="https://www.cnblogs.com/gordon0918/p/5237717.html" target="_blank" rel="noopener">Https协议简析及中间人攻击原理</a></li>
+<li><a href="https://www.zhihu.com/question/22795329" target="_blank" rel="noopener">HTTPS 可能被这样劫持吗？</a></li>
+</ol>
+]]></content>
+      <categories>
+        <category>网络</category>
+      </categories>
+      <tags>
+        <tag>https</tag>
+        <tag>网络</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>白夜行</title>
+    <url>/2019/11/16/%E8%AF%BB%E4%B9%A6/%E7%99%BD%E5%A4%9C%E8%A1%8C/</url>
+    <content><![CDATA[<blockquote>
+<p>“喏，夏美，一天当中，有太阳升起的时候，也有下沉的时候。人生也一样，有白天和黑夜，只是不会像真正的太阳那样，有定时的日出和日落。看个人，有些人一辈子都活在太阳的照耀下，也有些人不得不一直活在漆黑的深夜里。人害怕的，就是本来一直存在的太阳落下不再升起，也就是非常害怕原本照在身上的光芒消失，现在的夏美就是这样。”</p>
+</blockquote>
+<p>她把别人推向黑夜, 取代太阳</p>
+<blockquote>
+<p>“我的天空里没有太阳，总是黑夜，但并不暗，因为有东西代替了太阳。虽然没有太阳那么明亮，但对我来说已经足够。凭借着这份光，我便能把黑夜当成白天。你明白吧？我从来就没有太阳，所以不怕失去。</p>
+</blockquote>
+<p>最终, 这份光也失去了</p>
+<ul>
+<li>桐原说自己的愿望是”在白天走路”, 自己的人生就像在白夜走路.美穗说自己的天空没有太阳,有东西代替了太阳,不难猜测这便是桐原, 这俩人互相依靠行走于白夜. 美穗憧憬着白天, 为此不择手段. 而桐原为了保护着美穗, 一样不择手段,同时也像是背负着父亲的罪恶</li>
+<li>前半部分对美穗的描写另人不寒而栗, 最后的最后又用几段话和身世填补了她的形像, 不再是一个怪物, 而是一个悲惨又冷酷到极致的人(<em>也算是光怀效应吧</em>)</li>
+<li>美穗的观察力另人印象深刻</li>
+</ul>
+<p>罪恶催生罪恶<br>没有注意到雪穗开的精品店, 名字是R&amp;Y, 这是亮司和雪穗缩写</p>
+<h2 id="有几个疑问"><a href="#有几个疑问" class="headerlink" title="有几个疑问"></a>有几个疑问</h2><ol>
+<li>美穗为什么要杀养母?</li>
+<li>为什么在亮司杀死唐泽礼子之后，他回去说了一句:“一切都结束了”?</li>
+</ol>
+]]></content>
+      <categories>
+        <category>读书</category>
+      </categories>
+      <tags>
+        <tag>读书</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>思考必须使用语言?有没有更好or高效的方式?</title>
+    <url>/2019/11/15/%E6%80%9D%E8%80%83%E5%BF%85%E9%A1%BB%E4%BD%BF%E7%94%A8%E8%AF%AD%E8%A8%80-%E6%9C%89%E6%B2%A1%E6%9C%89%E6%9B%B4%E5%A5%BDor%E9%AB%98%E6%95%88%E7%9A%84%E6%96%B9%E5%BC%8F/</url>
+    <content><![CDATA[]]></content>
+      <tags>
+        <tag>思考</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>阿里oss+PicGo配制图床</title>
+    <url>/2019/11/12/%E9%98%BF%E9%87%8Coss+PicGo%E9%85%8D%E5%88%B6%E5%9B%BE%E5%BA%8A/</url>
+    <content><![CDATA[<p>[toc]</p>
+<h1 id="阿里oss-PicGo配制图床"><a href="#阿里oss-PicGo配制图床" class="headerlink" title="阿里oss+PicGo配制图床"></a>阿里oss+PicGo配制图床</h1><h2 id="1-购买阿里oss"><a href="#1-购买阿里oss" class="headerlink" title="1. 购买阿里oss"></a>1. 购买阿里oss</h2><p>按流量 / 包月, 按需购买即可, <strong>此处购买的只是空间, 流量另外付费</strong></p>
+<h3 id="1-1-获取AccessKeys"><a href="#1-1-获取AccessKeys" class="headerlink" title="1.1 获取AccessKeys"></a>1.1 获取AccessKeys</h3><p><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191110012222.png" alt="0"></p>
+<hr>
+<blockquote>
+<p>以下为RAM访问控制, 设置这个子用户更加的安全<br><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191110005443.png" alt="1"><br><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191110010153.png" alt="2"></p>
+</blockquote>
+<h2 id="2-下载并配制PicGo"><a href="#2-下载并配制PicGo" class="headerlink" title="2 下载并配制PicGo"></a>2 下载并配制PicGo</h2><h3 id="2-1-下载"><a href="#2-1-下载" class="headerlink" title="2.1 下载"></a>2.1 下载</h3><p><a href="https://github.com/Molunerfinn/PicGo/releases" target="_blank" rel="noopener">下载地址</a></p>
+<h3 id="2-2-配制"><a href="#2-2-配制" class="headerlink" title="2.2 配制"></a>2.2 配制</h3><p><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191110010937.png" alt></p>
+<ul>
+<li>accesskey和accesskeySecret可以从阿里云控制台获取(刚刚设置的)。</li>
+<li>存储空间名是bucket的名字。</li>
+<li>存储区域到阿里云OSS控制台去找，例如下图中存储区域就是 <code>oss-cn-beijing</code><br><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191110010639.png" alt></li>
+<li>存储路径是存储图片的位置，要求以/结尾,bucket中没有指定文件夹的话可以不填。</li>
+<li>自定义域名可以不填写。</li>
+</ul>
+]]></content>
+      <tags>
+        <tag>图床</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Github+hext搭建个人线上笔记</title>
+    <url>/2019/11/12/github+hext%E6%90%AD%E5%BB%BA%E4%B8%AA%E4%BA%BA%E7%BA%BF%E4%B8%8A%E7%AC%94%E8%AE%B0/</url>
+    <content><![CDATA[<p>[toc]</p>
+<h1 id="Github-hext搭建个人线上笔记"><a href="#Github-hext搭建个人线上笔记" class="headerlink" title="Github+hext搭建个人线上笔记"></a>Github+hext搭建个人线上笔记</h1><h2 id="1-github"><a href="#1-github" class="headerlink" title="1. github"></a>1. github</h2><h3 id="1-1-创建仓库"><a href="#1-1-创建仓库" class="headerlink" title="1.1 创建仓库"></a>1.1 创建仓库</h3><p><strong>注意</strong> 这个名字最好的<code>用户名.github.io</code>, 因为之后使用hexo生成的静态文件中会使用 <code>/css/index.css</code>作为css的相对路径, 如果使用其他名字, github生成的网站地址会多出两级目录,导致找不到css和js文件</p>
+<p><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191110222817.png" alt></p>
+<h3 id="1-2-设置仓库"><a href="#1-2-设置仓库" class="headerlink" title="1.2 设置仓库"></a>1.2 设置仓库</h3><p>在仓库的设置中设置GitHub Pages 为 master</p>
+<p><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191110223555.png" alt></p>
+<h2 id="2-hexo"><a href="#2-hexo" class="headerlink" title="2. hexo"></a>2. hexo</h2><h3 id="2-1-安装"><a href="#2-1-安装" class="headerlink" title="2.1 安装"></a>2.1 安装</h3><blockquote>
+<p>依照hexo的官方首页命令安装</p>
+</blockquote>
+<h3 id="2-2-布署"><a href="#2-2-布署" class="headerlink" title="2.2 布署"></a>2.2 布署</h3><h4 id="2-2-1-生成静态文件"><a href="#2-2-1-生成静态文件" class="headerlink" title="2.2.1 生成静态文件"></a>2.2.1 生成静态文件</h4><p>执行 : <code>hexo generate</code> 或 <code>hexo g</code></p>
+<h4 id="2-2-2-上传到github"><a href="#2-2-2-上传到github" class="headerlink" title="2.2.2 上传到github"></a>2.2.2 上传到github</h4><ul>
+<li><p>修改根目录下的_config.yml文件, repository改为刚刚创建的Github仓库SSh链接</p>
+  <figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">deploy:</span><br><span class="line">type: git</span><br><span class="line">repository: git@github.com:KR673/note.github.io.git</span><br><span class="line">branch: master</span><br></pre></td></tr></table></figure>
+<p>  <strong>注意</strong>这个repository使用<strong>SSH链接</strong>而不是https</p>
+</li>
+<li><p>执行 : <code>hexo deploy</code> 或 <code>hexo d</code></p>
+</li>
+</ul>
+<h3 id="2-3-常用hexo命令"><a href="#2-3-常用hexo命令" class="headerlink" title="2.3 常用hexo命令"></a>2.3 常用hexo命令</h3><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">hexo new &quot;postName&quot; #新建文章</span><br><span class="line">hexo new page &quot;pageName&quot; #新建页面</span><br><span class="line">hexo generate #生成静态页面至public目录</span><br><span class="line">hexo server #开启预览访问端口（默认端口4000，&apos;ctrl + c&apos;关闭server）</span><br><span class="line">hexo deploy #部署到GitHub</span><br><span class="line">hexo help  # 查看帮助</span><br><span class="line">hexo version  #查看Hexo的版本</span><br></pre></td></tr></table></figure>
+
+<p>缩写：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">hexo n == hexo new</span><br><span class="line">hexo g == hexo generate</span><br><span class="line">hexo s == hexo server</span><br><span class="line">hexo d == hexo deploy</span><br></pre></td></tr></table></figure>
+
+<p>组合命令：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">hexo s -g #生成并本地预览</span><br><span class="line">hexo d -g #生成并上传</span><br></pre></td></tr></table></figure>]]></content>
+      <tags>
+        <tag>hexo</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>hexo&next(v7.5.0)使用中与到的一些问题及使用技巧</title>
+    <url>/2019/11/11/hexo&amp;next(v7.5.0)%E4%BD%BF%E7%94%A8%E4%B8%AD%E4%B8%8E%E5%88%B0%E7%9A%84%E4%B8%80%E4%BA%9B%E9%97%AE%E9%A2%98%E5%8F%8A%E4%BD%BF%E7%94%A8%E6%8A%80%E5%B7%A7/</url>
+    <content><![CDATA[<h1 id="hexo-amp-next-v7-5-0-使用中与到的一些问题及使用技巧"><a href="#hexo-amp-next-v7-5-0-使用中与到的一些问题及使用技巧" class="headerlink" title="hexo&amp;next(v7.5.0)使用中与到的一些问题及使用技巧"></a>hexo&amp;next(v7.5.0)使用中与到的一些问题及使用技巧</h1><h2 id="1-hexo"><a href="#1-hexo" class="headerlink" title="1. hexo"></a>1. hexo</h2><h3 id="1-1-默认会用相对路作为标题"><a href="#1-1-默认会用相对路作为标题" class="headerlink" title="1.1 默认会用相对路作为标题"></a>1.1 默认会用相对路作为标题</h3><p>如果_posts中有多级目录的话, <strong>默认会用相对路作为标题</strong>, 如<code>java/java基础</code>.<br>这就需要在文章头的 front-matter 中, 要加上<code>title</code>参数, 此时就会使用title中的名字作为标题</p>
+<h3 id="1-2-创建文件时生成front-matter信息"><a href="#1-2-创建文件时生成front-matter信息" class="headerlink" title="1.2 创建文件时生成front-matter信息"></a>1.2 创建文件时生成front-matter信息</h3><p>使用<code>hexo new [文件名]</code>的方式会默认使用scaffolds中的post模板生成文件</p>
+<h3 id="1-3-左侧添加标签云"><a href="#1-3-左侧添加标签云" class="headerlink" title="1.3 左侧添加标签云"></a>1.3 左侧添加标签云</h3><ol>
+<li><a href="https://github.com/MikeCoder/hexo-tag-cloud" target="_blank" rel="noopener">插件地址</a></li>
+<li><a href="https://blog.csdn.net/Aoman_Hao/article/details/89416634" target="_blank" rel="noopener">参考</a></li>
+</ol>
+<p>修改模板文件的时候需要加在里面<br><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191113203229.png" alt></p>
+<h2 id="1-4-根据目录结构生成分类"><a href="#1-4-根据目录结构生成分类" class="headerlink" title="1.4 根据目录结构生成分类"></a>1.4 根据目录结构生成分类</h2><ol>
+<li><a href="https://github.com/xu-song/hexo-auto-category" target="_blank" rel="noopener">插件地址</a></li>
+<li><a href="https://blog.eson.org/pub/e2f6e239/" target="_blank" rel="noopener">参考</a></li>
+</ol>
+<p>注意修改的是根目录的配制文件</p>
+<h2 id="2-next"><a href="#2-next" class="headerlink" title="2. next"></a>2. next</h2><h3 id="2-1-摘要显示图片"><a href="#2-1-摘要显示图片" class="headerlink" title="2.1 摘要显示图片"></a>2.1 摘要显示图片</h3><p>默认的方式是front-matter中添加<code>phothos</code>, 但是试了一下会报错, 目前不知道原因<br>现在通过修改<code>post.js</code>文件(<em>摘要的显示需要修改这个文件, 现在摘要的显示也是修改后的</em>), 添加<code>cover</code>来显示图片</p>
+<h3 id="2-2-文章添加版权声明"><a href="#2-2-文章添加版权声明" class="headerlink" title="2.2 文章添加版权声明"></a>2.2 文章添加版权声明</h3><p>设置config中的 <code>creative_commons</code>, post 改为 true<br><img src="https://mynoteimg.oss-cn-beijing.aliyuncs.com/20191113105946.png" alt></p>
+<h3 id="2-3-添加gitalk评论"><a href="#2-3-添加gitalk评论" class="headerlink" title="2.3 添加gitalk评论"></a>2.3 添加gitalk评论</h3><p><a href="https://segmentfault.com/a/1190000014085547" target="_blank" rel="noopener">https://segmentfault.com/a/1190000014085547</a></p>
+]]></content>
+      <tags>
+        <tag>hexo</tag>
+        <tag>next</tag>
+      </tags>
+  </entry>
 </search>

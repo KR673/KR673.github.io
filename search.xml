@@ -1,6 +1,134 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>JavaScript</title>
+    <url>/2020/02/29/JavaScript/</url>
+    <content><![CDATA[<h2 id="事件驱动"><a href="#事件驱动" class="headerlink" title="事件驱动"></a>事件驱动</h2><p>就是将事件和程序行为绑定在一起, 绑定过之后每次触发这个事件就会执行这个行为</p>
+]]></content>
+      <tags>
+        <tag>前端</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>自控力</title>
+    <url>/2020/02/24/%E8%AF%BB%E4%B9%A6/%E8%87%AA%E6%8E%A7%E5%8A%9B/</url>
+    <content><![CDATA[<p>[toc]</p>
+<h2 id="1-结构"><a href="#1-结构" class="headerlink" title="1. 结构"></a>1. 结构</h2><h2 id="2-观点"><a href="#2-观点" class="headerlink" title="2. 观点"></a>2. 观点</h2><h3 id="2-1-两个自我"><a href="#2-1-两个自我" class="headerlink" title="2.1 两个自我"></a>2.1 两个自我</h3><p><strong>本能系统</strong>和<strong>自控系统</strong>, 意志力挑战就是两个自我的对抗</p>
+<h3 id="2-1-道德许可"><a href="#2-1-道德许可" class="headerlink" title="2.1 道德许可"></a>2.1 道德许可</h3><p>只要我们的思想中正反两方, 好的行为总是允许我们做一点坏事. 所以我们需要<strong>牢记自己拒绝诱惑的理由和目标</strong>, 而非关注自己的进步</p>
+<h3 id="2-2-关于多巴胺"><a href="#2-2-关于多巴胺" class="headerlink" title="2.2 关于多巴胺"></a>2.2 关于多巴胺</h3><p>诱惑会促使大脑分泌多巴胺, 多巴胺的首要功能是<strong>让我们追求快乐而非产生快乐</strong>, 即产生的是<strong>欲望</strong>, </p>
+<ul>
+<li>我们需要自主的去寻找那些会让我们产生欲望的东西, 观察自己的大脑和身体的感受, 并做这些事观察自己放纵时的感受</li>
+<li>将不想做的事与那些让自己分泌多巴胺的事联系在一起, 促使自己去做那些事</li>
+</ul>
+<h3 id="2-3-出售未来"><a href="#2-3-出售未来" class="headerlink" title="2.3 出售未来"></a>2.3 出售未来</h3><p><strong>延迟折扣</strong>, 等待奖励的时间越长, 奖励对自己的价值越低. 可以利用这个发现, 当一件事诱惑都我们的时候可以设定一个等待十分钟的规则, 如果十分钟之后依然想做就去做.也可以增强’我想要’的力量,给自己保证坚持十分钟之后可以停下来<br>同时, 当人们首先想到的是未来的奖励的时候, 未来奖励的折扣率就会大大降低</p>
+<h3 id="2-4-白熊"><a href="#2-4-白熊" class="headerlink" title="2.4 白熊"></a>2.4 白熊</h3><p>如’不要想白熊’实验一样, 越是控制自己思维就越容易去想.<strong>不要试图控制自己的思想. 而是要控制自己的行为</strong></p>
+<ol>
+<li>我不要(当下不要):</li>
+</ol>
+<ul>
+<li>多巴胺</li>
+<li>道德许可</li>
+<li>延迟十分钟</li>
+<li>白熊</li>
+</ul>
+<ol>
+<li>我要做(当下要做):</li>
+</ol>
+<ul>
+<li>坚持十分钟</li>
+<li>道德许可</li>
+</ul>
+<ol start="3">
+<li>我想要(目标和欲望):</li>
+</ol>
+<ul>
+<li>延迟折扣</li>
+<li>道德许可</li>
+<li>白熊</li>
+</ul>
+<p>日常增强意志力:</p>
+<ul>
+<li>冥想</li>
+<li>呼吸练习</li>
+<li>运动</li>
+<li>放松</li>
+</ul>
+]]></content>
+  </entry>
+  <entry>
+    <title>自动化测试</title>
+    <url>/2020/02/21/%E8%87%AA%E5%8A%A8%E5%8C%96%E6%B5%8B%E8%AF%95/</url>
+    <content><![CDATA[<ol>
+<li>自动化测试框架 pytest</li>
+<li>生成web报告 allure</li>
+</ol>
+<p>需要安装的包</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">pip install pytest</span><br><span class="line">pip install allure-pytest</span><br><span class="line">npm install -g allure-commandline --save-dev</span><br></pre></td></tr></table></figure>
+
+<p>注意: <code>pytest-allure-adaptor</code> 在python3中兼容性不好, 无法使用</p>
+<ol>
+<li>写一个用例</li>
+<li>执行 <code>pytest .\test_case.py</code> 运行用例(可以使用<code>pytest –s –q test_demo.py --alluredir report</code>指定文件夹)</li>
+<li>执行 <code>allure generate report</code>  将 report 下的数据生成 html页面(<strong>注意</strong>:这个页面在chrome中显示不出来, 需要使用edge)</li>
+</ol>
+<ol>
+<li>allure-pytest的用途是什么</li>
+<li>pytest -s -q 选项的意义是什么</li>
+<li>为什么生成的html页面chrome显示不出来</li>
+<li>现在生成的是json文件, 看其他博客中生成的是xml文件, 为什么</li>
+<li>生成过测试数据之后, 再次运行会覆盖之前的数据吗? </li>
+<li>生成过一次报告之后, 再次生成会提示 需要覆盖有什么方法处理</li>
+</ol>
+]]></content>
+  </entry>
+  <entry>
+    <title>布署项目</title>
+    <url>/2020/02/17/Linux/%E5%B8%83%E7%BD%B2%E9%A1%B9%E7%9B%AE/</url>
+    <content><![CDATA[<p>[toc]</p>
+<h2 id="Java项目布署"><a href="#Java项目布署" class="headerlink" title="Java项目布署"></a>Java项目布署</h2><ol>
+<li><strong>打包</strong><ul>
+<li>maven命令 : <code>maven clean package</code></li>
+<li>idea 直接 <code>insert</code></li>
+</ul>
+</li>
+<li><strong>上传</strong><ul>
+<li>将class文件中的jar包上传</li>
+</ul>
+</li>
+<li><strong>运行</strong> : 执行 <code>nohup java -jar [包名] &gt; file.log &amp;</code><ul>
+<li><code>nohup</code> : 关闭窗口,不挂断程序</li>
+<li><code>&gt; file.log</code> : 使用<code>nohup</code>就必需使用这个, 日志输出到文件 file.log</li>
+<li><code>&amp;</code> : 后台运行</li>
+</ul>
+</li>
+</ol>
+<blockquote>
+<p>可以使用 <code>tail -f file.log</code>在窗口中持续打印日志输出</p>
+</blockquote>
+<p><a href="https://blog.csdn.net/chenjianandiyi/article/details/102952087" target="_blank" rel="noopener">alibaba could toolkit(idea插件)</a></p>
+<h2 id="maven-打包命令"><a href="#maven-打包命令" class="headerlink" title="maven 打包命令"></a>maven 打包命令</h2><ul>
+<li><code>mvn clean package</code> : 依次执行clean、resources、compile、testResources、testCompile、test、jar(打包)等７个阶段。</li>
+<li><code>mvn clean install</code> : 依次执行 同上、install等8个阶段。</li>
+<li><code>mvn clean deploy</code> : 依次执行 同上、deploy等９个阶段。</li>
+</ul>
+<p><strong>区别</strong>:<br>package : 只打包<br>install : 打包的同时布署到本地<br>deploy : 打包的同时布署到本地和maven远程私服</p>
+]]></content>
+      <tags>
+        <tag>linux</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>哲学的慰藉</title>
+    <url>/2020/02/11/%E8%AF%BB%E4%B9%A6/%E5%93%B2%E5%AD%A6%E7%9A%84%E6%85%B0%E8%97%89/</url>
+    <content><![CDATA[<h2 id="摘抄"><a href="#摘抄" class="headerlink" title="摘抄"></a>摘抄</h2><ul>
+<li>使我们感到窘迫的不应是困难本身, 而是我们无能让其结出美丽的果实</li>
+</ul>
+<blockquote>
+<p>不应害怕无法避免的困难, 它将成为我们的土壤</p>
+</blockquote>
+]]></content>
+  </entry>
+  <entry>
     <title>有效学习</title>
     <url>/2020/02/02/%E8%AF%BB%E4%B9%A6/%E6%9C%89%E6%95%88%E5%AD%A6%E4%B9%A0/</url>
     <content><![CDATA[<p>[toc]</p>
@@ -23,10 +151,63 @@
 </ul>
 </li>
 </ul>
+<h3 id="2-3-知识效应"><a href="#2-3-知识效应" class="headerlink" title="2.3 知识效应"></a>2.3 知识效应</h3><p>即掌握的知识是下一步所学知识的基础, 所以如果学习一门知识就需要先将其调整到一个可接受的程度,<strong>如果对某个事物一无所知,学习学就会异常困难</strong>.最有效的学习活动是学习未知领域中对我门来说最简单的内容. 但是如果学会之后就需要跳出舒适区, 在超出自己一部分的领域学习,刚刚超出我们知识和技能范围的边缘位置</p>
+<h3 id="2-4-自我提问"><a href="#2-4-自我提问" class="headerlink" title="2.4 自我提问"></a>2.4 自我提问</h3><p>书中的大部分方法都需要自己问自己问题, 包括元认知, 提取练习, 自测 等等, 这些方法既有利于自我测试, 这些都非学的有利于加深对知识的理解, 发现自己的不足 </p>
+<h3 id="2-5-费曼学习法"><a href="#2-5-费曼学习法" class="headerlink" title="2.5 费曼学习法"></a>2.5 费曼学习法</h3><p>这个方法同样在&lt;&lt;<strong>如何高效学习</strong>&gt;&gt;中也有提到, 简单来说就是将学到的知识尽可能简单的解释到非专业人员. 可以想像一个小孩子将知识解释给他,使用这种方法可以强迫自己使用类比, 比喻等方法来整理知识, 可以加深自己的理解, 发现自己的不足, 同时也便于记忆.在对非常困难的知识是使用的时候</p>
 <h2 id="3-整理"><a href="#3-整理" class="headerlink" title="3. 整理"></a>3. 整理</h2><p>根据书中学到的知识整理一个我认为比较合适的学习过程</p>
+<p>总的来说, 在学习的过程中没有什么固定的顺序, 但是大体来说第一步总是需要设定一个目标, 用多长时间学习一个什么东西.接下来</p>
+<ol>
+<li>设定目标</li>
+<li>学习<ol>
+<li>因知识效应,需要从要学习知识的最简单的概念学起</li>
+</ol>
+</li>
+</ol>
 <h3 id="3-1-第一步-价值感与目标"><a href="#3-1-第一步-价值感与目标" class="headerlink" title="3.1 第一步: 价值感与目标"></a>3.1 第一步: 价值感与目标</h3><p>关于价值感, 现在大多时候是不需要的, 因为本身要学习的很大一部分是自己想要学习的知识, 但是免不了一些时候需要学自己不感兴趣的知识, 这种时候就要先寻找价值感,具体的方法有:</p>
 <p>在一个学习活动开始的时候是<strong>必需设立目标</strong>的, 防止三心二意, 最好加上时间, 防止拖延.具体需要:</p>
-<h3 id="3-2-第二步-理解学习"><a href="#3-2-第二步-理解学习" class="headerlink" title="3.2 第二步: 理解学习"></a>3.2 第二步: 理解学习</h3><h3 id="3-3-第三步-应用-练习"><a href="#3-3-第三步-应用-练习" class="headerlink" title="3.3 第三步: 应用/练习"></a>3.3 第三步: 应用/练习</h3><h3 id="3-4-第四步-回顾反思"><a href="#3-4-第四步-回顾反思" class="headerlink" title="3.4 第四步: 回顾反思"></a>3.4 第四步: 回顾反思</h3><h3 id="3-5-第五步-拓展-gt-第一步"><a href="#3-5-第五步-拓展-gt-第一步" class="headerlink" title="3.5 第五步: 拓展 -&gt; 第一步"></a>3.5 第五步: 拓展 -&gt; 第一步</h3>]]></content>
+<h3 id="3-2-第二步-理解学习"><a href="#3-2-第二步-理解学习" class="headerlink" title="3.2 第二步: 理解学习"></a>3.2 第二步: 理解学习</h3><h3 id="3-3-第三步-应用-练习"><a href="#3-3-第三步-应用-练习" class="headerlink" title="3.3 第三步: 应用/练习"></a>3.3 第三步: 应用/练习</h3><h3 id="3-4-第四步-回顾反思"><a href="#3-4-第四步-回顾反思" class="headerlink" title="3.4 第四步: 回顾反思"></a>3.4 第四步: 回顾反思</h3><h3 id="3-5-第五步-拓展-gt-第一步"><a href="#3-5-第五步-拓展-gt-第一步" class="headerlink" title="3.5 第五步: 拓展 -&gt; 第一步"></a>3.5 第五步: 拓展 -&gt; 第一步</h3><ul>
+<li>一种知识必然和其他知识产生关联, 所以大多数情况下, 学习的过程中也在拓展, 而不也不存在单独学某种知识的情况</li>
+<li>如何记就如何忆</li>
+<li>就我目前的体会而言, 学习活动只有三步: 理解 , 记忆, 应用</li>
+<li>对于学习的规划<strong>峰终定理</strong>, 一项活动的整体印象取决于过程中的感受的峰值和终值. <ul>
+<li>这个不只可以用于学习中, 适用于读书, 玩乐….活动中</li>
+</ul>
+</li>
+<li>需要有意识的去运用这些方法, 同时有意识的记忆一些东西</li>
+</ul>
+<hr>
+<p>确定目标</p>
+<ul>
+<li>知识效应</li>
+<li>舒适区</li>
+<li>怀疑</li>
+</ul>
+<hr>
+<p>理解</p>
+<ul>
+<li>元认知</li>
+<li>推理</li>
+<li>假设类比</li>
+</ul>
+<p>理解&amp;记忆</p>
+<ul>
+<li>费曼学习法</li>
+<li>图形化</li>
+</ul>
+<hr>
+<p>记忆</p>
+<ul>
+<li>信息简化</li>
+<li>自己概括</li>
+</ul>
+<p>忆</p>
+<ul>
+<li>提取/回忆</li>
+<li>反馈</li>
+<li>测试</li>
+<li>心理意象</li>
+</ul>
+]]></content>
       <categories>
         <category>读书</category>
       </categories>
@@ -259,8 +440,8 @@
         <category>Linux</category>
       </categories>
       <tags>
-        <tag>docker</tag>
         <tag>linux</tag>
+        <tag>docker</tag>
         <tag>tomcat</tag>
         <tag>nginx</tag>
       </tags>
